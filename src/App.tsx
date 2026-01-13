@@ -12,6 +12,11 @@ import Bookings from "./pages/Bookings";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminApprovals from "./pages/admin/AdminApprovals";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminInventory from "./pages/admin/AdminInventory";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,7 +37,12 @@ const App = () => (
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/login" element={<Login />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/approvals" element={<AdminApprovals />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/inventory" element={<AdminInventory />} />
+          <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
