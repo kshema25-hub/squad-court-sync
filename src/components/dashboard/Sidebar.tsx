@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -12,11 +12,12 @@ import {
   ChevronRight,
   Dumbbell,
   User,
-  CreditCard
+  CreditCard,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { currentUser } from '@/lib/data';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
@@ -29,7 +30,16 @@ const menuItems = [
 
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { profile, signOut, isAdmin, isFaculty } = useAuth();
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    await signOut();
+    navigate('/');
+  };
 
   return (
     <motion.aside
@@ -90,6 +100,31 @@ export const Sidebar = () => {
             </Link>
           );
         })}
+
+        {/* Admin link for admins/faculty */}
+        {(isAdmin || isFaculty) && (
+          <Link to="/admin">
+            <div
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 mt-4 border border-dashed border-primary/30',
+                location.pathname.startsWith('/admin')
+                  ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-glow'
+                  : 'text-primary hover:bg-sidebar-accent'
+              )}
+            >
+              <LayoutDashboard className="w-5 h-5 shrink-0" />
+              {!collapsed && (
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="font-medium text-sm"
+                >
+                  Admin Panel
+                </motion.span>
+              )}
+            </div>
+          </Link>
+        )}
       </nav>
 
       {/* User section */}
@@ -101,21 +136,28 @@ export const Sidebar = () => {
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">
-                {currentUser.name}
+                {profile?.full_name || 'User'}
               </p>
               <p className="text-xs text-muted-foreground truncate">
-                {currentUser.classId}
+                {profile?.student_id || profile?.email}
               </p>
             </div>
           )}
         </div>
         {!collapsed && (
-          <Link to="/">
-            <Button variant="ghost" className="w-full mt-3 justify-start text-muted-foreground">
+          <Button 
+            variant="ghost" 
+            className="w-full mt-3 justify-start text-muted-foreground"
+            onClick={handleSignOut}
+            disabled={signingOut}
+          >
+            {signingOut ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
               <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
-          </Link>
+            )}
+            Sign Out
+          </Button>
         )}
       </div>
     </motion.aside>

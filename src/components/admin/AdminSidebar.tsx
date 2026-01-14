@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
@@ -11,12 +11,14 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Dumbbell,
   Shield,
-  CheckSquare
+  CheckSquare,
+  Home,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Overview', href: '/admin' },
@@ -30,7 +32,22 @@ const menuItems = [
 
 export const AdminSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { profile, role, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    await signOut();
+    navigate('/');
+  };
+
+  const getRoleLabel = () => {
+    if (role === 'admin') return 'Administrator';
+    if (role === 'faculty') return 'Sports Staff';
+    return 'User';
+  };
 
   return (
     <motion.aside
@@ -93,6 +110,27 @@ export const AdminSidebar = () => {
             </Link>
           );
         })}
+
+        {/* Back to Dashboard */}
+        <Link to="/dashboard">
+          <div
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 mt-4 border border-dashed border-primary/30',
+              'text-primary hover:bg-sidebar-accent'
+            )}
+          >
+            <Home className="w-5 h-5 shrink-0" />
+            {!collapsed && (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="font-medium text-sm"
+              >
+                Student Dashboard
+              </motion.span>
+            )}
+          </div>
+        </Link>
       </nav>
 
       {/* Admin section */}
@@ -104,21 +142,28 @@ export const AdminSidebar = () => {
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">
-                Admin User
+                {profile?.full_name || 'Admin User'}
               </p>
               <p className="text-xs text-muted-foreground truncate">
-                Sports Staff
+                {getRoleLabel()}
               </p>
             </div>
           )}
         </div>
         {!collapsed && (
-          <Link to="/">
-            <Button variant="ghost" className="w-full mt-3 justify-start text-muted-foreground">
+          <Button 
+            variant="ghost" 
+            className="w-full mt-3 justify-start text-muted-foreground"
+            onClick={handleSignOut}
+            disabled={signingOut}
+          >
+            {signingOut ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
               <LogOut className="w-4 h-4 mr-2" />
-              Exit Admin
-            </Button>
-          </Link>
+            )}
+            Sign Out
+          </Button>
         )}
       </div>
     </motion.aside>

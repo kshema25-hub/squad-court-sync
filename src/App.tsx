@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Courts from "./pages/Courts";
@@ -11,7 +13,7 @@ import Equipment from "./pages/Equipment";
 import Bookings from "./pages/Bookings";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
-import Login from "./pages/Login";
+import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminApprovals from "./pages/admin/AdminApprovals";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -24,28 +26,83 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/courts" element={<Courts />} />
-          <Route path="/courts/:id" element={<CourtDetail />} />
-          <Route path="/equipment" element={<Equipment />} />
-          <Route path="/bookings" element={<Bookings />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/login" element={<Login />} />
-          {/* Admin Routes */}
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/approvals" element={<AdminApprovals />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/inventory" element={<AdminInventory />} />
-          <Route path="/admin/analytics" element={<AdminAnalytics />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Auth />} />
+            <Route path="/auth" element={<Auth />} />
+            
+            {/* Protected Student Routes */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/courts" element={
+              <ProtectedRoute>
+                <Courts />
+              </ProtectedRoute>
+            } />
+            <Route path="/courts/:id" element={
+              <ProtectedRoute>
+                <CourtDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/equipment" element={
+              <ProtectedRoute>
+                <Equipment />
+              </ProtectedRoute>
+            } />
+            <Route path="/bookings" element={
+              <ProtectedRoute>
+                <Bookings />
+              </ProtectedRoute>
+            } />
+            <Route path="/notifications" element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } />
+            
+            {/* Protected Admin/Faculty Routes */}
+            <Route path="/admin" element={
+              <ProtectedRoute requiredRoles={['admin', 'faculty']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/approvals" element={
+              <ProtectedRoute requiredRoles={['admin', 'faculty']}>
+                <AdminApprovals />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/users" element={
+              <ProtectedRoute requiredRoles={['admin']}>
+                <AdminUsers />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/inventory" element={
+              <ProtectedRoute requiredRoles={['admin', 'faculty']}>
+                <AdminInventory />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/analytics" element={
+              <ProtectedRoute requiredRoles={['admin', 'faculty']}>
+                <AdminAnalytics />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
