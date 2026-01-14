@@ -14,6 +14,7 @@ import Bookings from "./pages/Bookings";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
+import TestSetup from "./pages/TestSetup";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminApprovals from "./pages/admin/AdminApprovals";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Auth />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/test-setup" element={<TestSetup />} />
             
             {/* Protected Student Routes */}
             <Route path="/dashboard" element={
