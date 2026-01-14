@@ -1,33 +1,69 @@
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { BookingCard } from '@/components/dashboard/BookingCard';
-import { Calendar, Package, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
-import { upcomingBookings, currentUser, courts, equipment } from '@/lib/data';
+import { Calendar, Package, Clock, AlertTriangle, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import { useUpcomingBookings, useBookingStats } from '@/hooks/useBookings';
+import { useAvailableCourtsCount, useAvailableEquipmentCount } from '@/hooks/useResources';
+import { useUserClass } from '@/hooks/useClasses';
 
 const Dashboard = () => {
-  const stats = [
-    { icon: Calendar, label: 'Active Bookings', value: 3, change: '+2 this week', changeType: 'positive' as const },
-    { icon: Package, label: 'Equipment Issued', value: 2, change: 'Due tomorrow', changeType: 'neutral' as const },
-    { icon: Clock, label: 'Hours Booked', value: 12, change: 'This month', changeType: 'neutral' as const },
-    { icon: AlertTriangle, label: 'Pending Fees', value: '₹0', change: 'All clear!', changeType: 'positive' as const },
+  const { user, profile } = useAuth();
+  const { data: upcomingBookings, isLoading: bookingsLoading } = useUpcomingBookings(user?.id);
+  const { data: stats, isLoading: statsLoading } = useBookingStats(user?.id);
+  const { data: availableCourts } = useAvailableCourtsCount();
+  const { data: availableEquipment } = useAvailableEquipmentCount();
+  const { data: userClass } = useUserClass(user?.id);
+
+  const displayStats = [
+    { 
+      icon: Calendar, 
+      label: 'Active Bookings', 
+      value: stats?.activeBookings ?? 0, 
+      change: 'Upcoming', 
+      changeType: 'positive' as const 
+    },
+    { 
+      icon: Package, 
+      label: 'Equipment Issued', 
+      value: stats?.equipmentIssued ?? 0, 
+      change: 'Currently out', 
+      changeType: 'neutral' as const 
+    },
+    { 
+      icon: Clock, 
+      label: 'Hours Booked', 
+      value: stats?.hoursBooked ?? 0, 
+      change: 'This month', 
+      changeType: 'neutral' as const 
+    },
+    { 
+      icon: AlertTriangle, 
+      label: 'Pending Fees', 
+      value: stats?.pendingFees ? `₹${stats.pendingFees}` : '₹0', 
+      change: stats?.pendingFees ? 'Due' : 'All clear!', 
+      changeType: stats?.pendingFees ? 'negative' as const : 'positive' as const 
+    },
   ];
+
+  const firstName = profile?.full_name?.split(' ')[0] || 'User';
 
   return (
     <DashboardLayout
-      title={`Welcome back, ${currentUser.name.split(' ')[0]}!`}
-      subtitle={`Class ID: ${currentUser.classId} • Student ID: ${currentUser.studentId}`}
+      title={`Welcome back, ${firstName}!`}
+      subtitle={profile?.student_id ? `Student ID: ${profile.student_id}` : profile?.email}
     >
       {/* Stats Grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map((stat, index) => (
+        {displayStats.map((stat, index) => (
           <StatCard
             key={stat.label}
             icon={stat.icon}
             label={stat.label}
-            value={stat.value}
+            value={statsLoading ? '...' : stat.value}
             change={stat.change}
             changeType={stat.changeType}
             delay={index * 0.1}
@@ -56,7 +92,12 @@ const Dashboard = () => {
           </div>
 
           <div className="space-y-4">
-            {upcomingBookings.length > 0 ? (
+            {bookingsLoading ? (
+              <div className="bg-gradient-card rounded-xl p-8 border border-border text-center">
+                <Loader2 className="w-8 h-8 text-primary mx-auto mb-3 animate-spin" />
+                <p className="text-muted-foreground">Loading bookings...</p>
+              </div>
+            ) : upcomingBookings && upcomingBookings.length > 0 ? (
               upcomingBookings.map((booking, index) => (
                 <BookingCard key={booking.id} booking={booking} index={index} />
               ))
@@ -97,7 +138,7 @@ const Dashboard = () => {
                   <div>
                     <h4 className="font-semibold text-foreground">Book a Court</h4>
                     <p className="text-sm text-muted-foreground">
-                      {courts.filter((c) => c.available).length} courts available
+                      {availableCourts ?? 0} courts available
                     </p>
                   </div>
                 </div>
@@ -113,7 +154,7 @@ const Dashboard = () => {
                   <div>
                     <h4 className="font-semibold text-foreground">Request Equipment</h4>
                     <p className="text-sm text-muted-foreground">
-                      {equipment.length} items available
+                      {availableEquipment ?? 0} items available
                     </p>
                   </div>
                 </div>
@@ -128,7 +169,7 @@ const Dashboard = () => {
                 <div>
                   <h4 className="font-semibold text-foreground">Class Booking</h4>
                   <p className="text-sm text-muted-foreground">
-                    Book for {currentUser.classId}
+                    {userClass ? `Book for ${userClass.class_id}` : 'Join a class first'}
                   </p>
                 </div>
               </div>
@@ -140,24 +181,30 @@ const Dashboard = () => {
             <h3 className="font-display font-semibold text-foreground mb-3">
               Your Class
             </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Class ID</span>
-                <span className="font-medium text-foreground">{currentUser.classId}</span>
+            {userClass ? (
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Class ID</span>
+                  <span className="font-medium text-foreground">{userClass.class_id}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Section</span>
+                  <span className="font-medium text-foreground">{userClass.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Students</span>
+                  <span className="font-medium text-foreground">{userClass.student_count}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Department</span>
+                  <span className="font-medium text-foreground">{userClass.department}</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Section</span>
-                <span className="font-medium text-foreground">CSE 2024 - A</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Students</span>
-                <span className="font-medium text-foreground">60</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Coordinator</span>
-                <span className="font-medium text-foreground">Dr. Sharma</span>
-              </div>
-            </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                You're not assigned to a class yet. Contact admin to join a class.
+              </p>
+            )}
           </div>
         </motion.div>
       </div>

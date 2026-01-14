@@ -1,19 +1,24 @@
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { BookingCard } from '@/components/dashboard/BookingCard';
-import { upcomingBookings } from '@/lib/data';
+import { useUserBookings } from '@/hooks/useBookings';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Calendar, Plus } from 'lucide-react';
+import { Calendar, Plus, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Bookings = () => {
-  const activeBookings = upcomingBookings.filter(
+  const { user } = useAuth();
+  const { data: bookings, isLoading } = useUserBookings(user?.id);
+
+  const activeBookings = bookings?.filter(
     (b) => b.status === 'approved' || b.status === 'pending'
-  );
-  const pastBookings = upcomingBookings.filter(
-    (b) => b.status === 'completed' || b.status === 'rejected'
-  );
+  ) || [];
+  
+  const pastBookings = bookings?.filter(
+    (b) => b.status === 'completed' || b.status === 'rejected' || b.status === 'cancelled'
+  ) || [];
 
   return (
     <DashboardLayout
@@ -24,8 +29,12 @@ const Bookings = () => {
         <Tabs defaultValue="active" className="w-full">
           <div className="flex flex-col sm:flex-row gap-4 justify-between mb-6">
             <TabsList className="bg-secondary">
-              <TabsTrigger value="active">Active</TabsTrigger>
-              <TabsTrigger value="past">Past</TabsTrigger>
+              <TabsTrigger value="active">
+                Active {activeBookings.length > 0 && `(${activeBookings.length})`}
+              </TabsTrigger>
+              <TabsTrigger value="past">
+                Past {pastBookings.length > 0 && `(${pastBookings.length})`}
+              </TabsTrigger>
             </TabsList>
 
             <div className="flex gap-2">
@@ -45,7 +54,12 @@ const Bookings = () => {
           </div>
 
           <TabsContent value="active">
-            {activeBookings.length > 0 ? (
+            {isLoading ? (
+              <div className="bg-gradient-card rounded-xl p-12 border border-border text-center">
+                <Loader2 className="w-8 h-8 text-primary mx-auto mb-3 animate-spin" />
+                <p className="text-muted-foreground">Loading bookings...</p>
+              </div>
+            ) : activeBookings.length > 0 ? (
               <div className="space-y-4">
                 {activeBookings.map((booking, index) => (
                   <BookingCard key={booking.id} booking={booking} index={index} />
@@ -77,7 +91,12 @@ const Bookings = () => {
           </TabsContent>
 
           <TabsContent value="past">
-            {pastBookings.length > 0 ? (
+            {isLoading ? (
+              <div className="bg-gradient-card rounded-xl p-12 border border-border text-center">
+                <Loader2 className="w-8 h-8 text-primary mx-auto mb-3 animate-spin" />
+                <p className="text-muted-foreground">Loading bookings...</p>
+              </div>
+            ) : pastBookings.length > 0 ? (
               <div className="space-y-4">
                 {pastBookings.map((booking, index) => (
                   <BookingCard key={booking.id} booking={booking} index={index} />
