@@ -376,6 +376,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      faculty_can_access_student: {
+        Args: { _faculty_user_id: string; _student_user_id: string }
+        Returns: boolean
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
