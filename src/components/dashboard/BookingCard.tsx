@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
-import { Calendar, Clock, MapPin, Users } from 'lucide-react';
-import { Booking, courts } from '@/lib/data';
+import { Calendar, Clock, MapPin, Users, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Booking } from '@/hooks/useBookings';
+import { format } from 'date-fns';
 
 interface BookingCardProps {
   booking: Booking;
@@ -10,14 +11,24 @@ interface BookingCardProps {
 }
 
 export const BookingCard = ({ booking, index }: BookingCardProps) => {
-  const court = courts.find((c) => c.id === booking.courtId);
-
-  const statusColors = {
+  const statusColors: Record<string, string> = {
     pending: 'bg-warning/20 text-warning border-warning/30',
     approved: 'bg-success/20 text-success border-success/30',
     rejected: 'bg-destructive/20 text-destructive border-destructive/30',
     completed: 'bg-muted text-muted-foreground border-border',
+    cancelled: 'bg-muted text-muted-foreground border-border',
   };
+
+  const resourceName = booking.resource_type === 'court' 
+    ? booking.court?.name 
+    : booking.equipment?.name;
+    
+  const location = booking.resource_type === 'court'
+    ? booking.court?.location
+    : 'Sports Complex';
+
+  const startTime = new Date(booking.start_time);
+  const endTime = new Date(booking.end_time);
 
   return (
     <motion.div
@@ -27,16 +38,27 @@ export const BookingCard = ({ booking, index }: BookingCardProps) => {
       className="bg-gradient-card rounded-xl p-5 border border-border hover:border-primary/30 transition-all duration-300"
     >
       <div className="flex items-start justify-between mb-4">
-        <div>
-          <h4 className="font-display font-semibold text-foreground mb-1">
-            {court?.name || 'Equipment Booking'}
-          </h4>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <MapPin className="w-3.5 h-3.5" />
-            {court?.location || 'Sports Complex'}
+        <div className="flex items-start gap-3">
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+            booking.resource_type === 'court' ? 'bg-primary/10' : 'bg-accent/10'
+          }`}>
+            {booking.resource_type === 'court' ? (
+              <Calendar className="w-5 h-5 text-primary" />
+            ) : (
+              <Package className="w-5 h-5 text-accent" />
+            )}
+          </div>
+          <div>
+            <h4 className="font-display font-semibold text-foreground mb-1">
+              {resourceName || 'Booking'}
+            </h4>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="w-3.5 h-3.5" />
+              {location || 'Sports Complex'}
+            </div>
           </div>
         </div>
-        <Badge className={statusColors[booking.status]}>
+        <Badge className={statusColors[booking.status] || statusColors.pending}>
           {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
         </Badge>
       </div>
@@ -44,12 +66,12 @@ export const BookingCard = ({ booking, index }: BookingCardProps) => {
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="flex items-center gap-2 text-sm">
           <Calendar className="w-4 h-4 text-primary" />
-          <span className="text-foreground">{booking.date}</span>
+          <span className="text-foreground">{format(startTime, 'MMM d, yyyy')}</span>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <Clock className="w-4 h-4 text-primary" />
           <span className="text-foreground">
-            {booking.startTime} - {booking.endTime}
+            {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
           </span>
         </div>
       </div>
@@ -58,8 +80,15 @@ export const BookingCard = ({ booking, index }: BookingCardProps) => {
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">
-            {booking.type === 'class' ? booking.classId : 'Individual'}
+            {booking.booking_type === 'class' && booking.class 
+              ? booking.class.class_id 
+              : 'Individual'}
           </span>
+          {booking.quantity && booking.quantity > 1 && (
+            <Badge variant="outline" className="ml-2">
+              Qty: {booking.quantity}
+            </Badge>
+          )}
         </div>
         <div className="flex gap-2">
           {booking.status === 'pending' && (
