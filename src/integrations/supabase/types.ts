@@ -14,16 +14,382 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          booking_type: string
+          class_id: string | null
+          court_id: string | null
+          created_at: string
+          end_time: string
+          equipment_id: string | null
+          id: string
+          notes: string | null
+          quantity: number | null
+          resource_type: string
+          start_time: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_type: string
+          class_id?: string | null
+          court_id?: string | null
+          created_at?: string
+          end_time: string
+          equipment_id?: string | null
+          id?: string
+          notes?: string | null
+          quantity?: number | null
+          resource_type: string
+          start_time: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_type?: string
+          class_id?: string | null
+          court_id?: string | null
+          created_at?: string
+          end_time?: string
+          equipment_id?: string | null
+          id?: string
+          notes?: string | null
+          quantity?: number | null
+          resource_type?: string
+          start_time?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_members: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          is_representative: boolean
+          user_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          is_representative?: boolean
+          user_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          is_representative?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_members_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          class_id: string
+          created_at: string
+          department: string
+          id: string
+          name: string
+          student_count: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          department: string
+          id?: string
+          name: string
+          student_count?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          department?: string
+          id?: string
+          name?: string
+          student_count?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      courts: {
+        Row: {
+          amenities: string[] | null
+          capacity: number
+          created_at: string
+          id: string
+          image_url: string | null
+          is_available: boolean
+          location: string
+          name: string
+          sport: string
+          updated_at: string
+        }
+        Insert: {
+          amenities?: string[] | null
+          capacity?: number
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          location: string
+          name: string
+          sport: string
+          updated_at?: string
+        }
+        Update: {
+          amenities?: string[] | null
+          capacity?: number
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          location?: string
+          name?: string
+          sport?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      equipment: {
+        Row: {
+          available_quantity: number
+          category: string
+          condition: string
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          total_quantity: number
+          updated_at: string
+        }
+        Insert: {
+          available_quantity?: number
+          category: string
+          condition?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          total_quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          available_quantity?: number
+          category?: string
+          condition?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          total_quantity?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      equipment_issues: {
+        Row: {
+          booking_id: string
+          created_at: string
+          delay_fee: number | null
+          due_at: string
+          equipment_id: string
+          id: string
+          issued_at: string
+          notes: string | null
+          quantity: number
+          return_condition: string | null
+          returned_at: string | null
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          delay_fee?: number | null
+          due_at: string
+          equipment_id: string
+          id?: string
+          issued_at?: string
+          notes?: string | null
+          quantity?: number
+          return_condition?: string | null
+          returned_at?: string | null
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          delay_fee?: number | null
+          due_at?: string
+          equipment_id?: string
+          id?: string
+          issued_at?: string
+          notes?: string | null
+          quantity?: number
+          return_condition?: string | null
+          returned_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_issues_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_issues_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          phone: string | null
+          student_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          phone?: string | null
+          student_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          student_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "student" | "faculty" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +516,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["student", "faculty", "admin"],
+    },
   },
 } as const
