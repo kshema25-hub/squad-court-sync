@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { EquipmentCard } from '@/components/equipment/EquipmentCard';
-import { equipment, Equipment, currentUser } from '@/lib/data';
+import { useEquipment } from '@/hooks/useResources';
+import { useUserClass } from '@/hooks/useClasses';
+import { useCreateEquipmentBooking } from '@/hooks/useBookingMutations';
+import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Package } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Package, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import {
   Dialog,
   DialogContent,
@@ -15,9 +18,17 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { toast } from 'sonner';
+import { Tables } from '@/integrations/supabase/types';
+import { addDays } from 'date-fns';
+
+type Equipment = Tables<'equipment'>;
 
 const EquipmentPage = () => {
+  const { user } = useAuth();
+  const { data: equipment = [], isLoading } = useEquipment();
+  const { data: userClass } = useUserClass(user?.id);
+  const createBooking = useCreateEquipmentBooking();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
@@ -40,10 +51,23 @@ const EquipmentPage = () => {
     setBookingType('individual');
   };
 
-  const submitRequest = () => {
-    toast.success(`Equipment request submitted!`, {
-      description: `${quantity}x ${selectedEquipment?.name} - ${bookingType === 'class' ? currentUser.classId : 'Individual'}`,
+  const submitRequest = async () => {
+    if (!selectedEquipment || !user) return;
+
+    // Default to 7-day equipment loan period
+    const startTime = new Date();
+    const endTime = addDays(startTime, 7);
+
+    await createBooking.mutateAsync({
+      equipmentId: selectedEquipment.id,
+      userId: user.id,
+      classId: bookingType === 'class' && userClass ? userClass.id : undefined,
+      bookingType,
+      quantity,
+      startTime,
+      endTime,
     });
+
     setSelectedEquipment(null);
   };
 
@@ -95,7 +119,7 @@ const EquipmentPage = () => {
         animate={{ opacity: 1 }}
         className="text-sm text-muted-foreground mb-6"
       >
-        Showing {filteredEquipment.length} of {equipment.length} items
+        {isLoading ? 'Loading...' : `Showing ${filteredEquipment.length} of ${equipment.length} items`}
       </motion.p>
 
       {/* Equipment Grid */}
@@ -103,9 +127,17 @@ const EquipmentPage = () => {
         {filteredEquipment.map((item, index) => (
           <EquipmentCard
             key={item.id}
-            equipment={item}
+            equipment={{
+              id: item.id,
+              name: item.name,
+              category: item.category,
+              availableQuantity: item.available_quantity,
+              totalQuantity: item.total_quantity,
+              condition: item.condition,
+              image: item.image_url || undefined,
+            }}
             index={index}
-            onRequest={handleRequest}
+            onRequest={() => handleRequest(item)}
           />
         ))}
       </div>
@@ -143,8 +175,8 @@ const EquipmentPage = () => {
               Request {selectedEquipment?.name}
             </DialogTitle>
             <DialogDescription>
-              Available: {selectedEquipment?.availableQuantity} of{' '}
-              {selectedEquipment?.totalQuantity}
+              Available: {selectedEquipment?.available_quantity} of{' '}
+              {selectedEquipment?.total_quantity}
             </DialogDescription>
           </DialogHeader>
 
@@ -164,9 +196,9 @@ const EquipmentPage = () => {
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="class" id="class" />
+                  <RadioGroupItem value="class" id="class" disabled={!userClass} />
                   <Label htmlFor="class" className="cursor-pointer">
-                    Class ({currentUser.classId})
+                    {userClass ? `Class (${userClass.name})` : 'No class assigned'}
                   </Label>
                 </div>
               </RadioGroup>
@@ -192,10 +224,10 @@ const EquipmentPage = () => {
                   size="icon"
                   onClick={() =>
                     setQuantity(
-                      Math.min(selectedEquipment?.availableQuantity || 1, quantity + 1)
+                      Math.min(selectedEquipment?.available_quantity || 1, quantity + 1)
                     )
                   }
-                  disabled={quantity >= (selectedEquipment?.availableQuantity || 1)}
+                  disabled={quantity >= (selectedEquipment?.available_quantity || 1)}
                 >
                   +
                 </Button>
@@ -208,11 +240,24 @@ const EquipmentPage = () => {
                 variant="outline"
                 className="flex-1"
                 onClick={() => setSelectedEquipment(null)}
+                disabled={createBooking.isPending}
               >
                 Cancel
               </Button>
-              <Button variant="hero" className="flex-1" onClick={submitRequest}>
-                Submit Request
+              <Button 
+                variant="hero" 
+                className="flex-1" 
+                onClick={submitRequest}
+                disabled={createBooking.isPending}
+              >
+                {createBooking.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Request'
+                )}
               </Button>
             </div>
           </div>

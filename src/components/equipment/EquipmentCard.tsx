@@ -1,32 +1,54 @@
 import { motion } from 'framer-motion';
 import { Package, AlertTriangle, Check } from 'lucide-react';
-import { Equipment, sportIcons } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 
+type ConditionType = 'good' | 'fair' | 'maintenance';
+
+interface EquipmentData {
+  id: string;
+  name: string;
+  category: string;
+  availableQuantity: number;
+  totalQuantity: number;
+  condition: string;
+  image?: string;
+}
+
 interface EquipmentCardProps {
-  equipment: Equipment;
+  equipment: EquipmentData;
   index: number;
-  onRequest: (equipment: Equipment) => void;
+  onRequest: () => void;
 }
 
 export const EquipmentCard = ({ equipment, index, onRequest }: EquipmentCardProps) => {
   const availabilityPercent = (equipment.availableQuantity / equipment.totalQuantity) * 100;
 
-  const conditionColors = {
+  // Normalize condition to expected values
+  const normalizeCondition = (condition: string): ConditionType => {
+    const lower = condition.toLowerCase();
+    if (lower.includes('good') || lower.includes('excellent')) return 'good';
+    if (lower.includes('fair') || lower.includes('average')) return 'fair';
+    if (lower.includes('maintenance') || lower.includes('poor')) return 'maintenance';
+    return 'good'; // default
+  };
+
+  const normalizedCondition = normalizeCondition(equipment.condition);
+
+  const conditionColors: Record<ConditionType, string> = {
     good: 'bg-success/20 text-success border-success/30',
     fair: 'bg-warning/20 text-warning border-warning/30',
     maintenance: 'bg-destructive/20 text-destructive border-destructive/30',
   };
 
-  const conditionIcons = {
+  const conditionIcons: Record<ConditionType, typeof Check | typeof AlertTriangle> = {
     good: Check,
     fair: AlertTriangle,
     maintenance: AlertTriangle,
   };
 
-  const ConditionIcon = conditionIcons[equipment.condition];
+  const ConditionIcon = conditionIcons[normalizedCondition];
 
   return (
     <motion.div
@@ -50,9 +72,9 @@ export const EquipmentCard = ({ equipment, index, onRequest }: EquipmentCardProp
               </h4>
               <p className="text-sm text-muted-foreground">{equipment.category}</p>
             </div>
-            <Badge className={conditionColors[equipment.condition]}>
+            <Badge className={conditionColors[normalizedCondition]}>
               <ConditionIcon className="w-3 h-3 mr-1" />
-              {equipment.condition.charAt(0).toUpperCase() + equipment.condition.slice(1)}
+              {normalizedCondition.charAt(0).toUpperCase() + normalizedCondition.slice(1)}
             </Badge>
           </div>
 
@@ -74,7 +96,7 @@ export const EquipmentCard = ({ equipment, index, onRequest }: EquipmentCardProp
               size="sm"
               className="flex-1"
               disabled={equipment.availableQuantity === 0}
-              onClick={() => onRequest(equipment)}
+              onClick={onRequest}
             >
               Request
             </Button>
