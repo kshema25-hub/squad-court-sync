@@ -1,8 +1,12 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
-import { courts, generateTimeSlots, currentUser, sportIcons } from '@/lib/data';
+import { generateTimeSlots, sportIcons } from '@/lib/data';
+import { useCourt } from '@/hooks/useResources';
+import { useUserClass } from '@/hooks/useClasses';
+import { useCreateCourtBooking } from '@/hooks/useBookingMutations';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
@@ -15,20 +19,35 @@ import {
   Clock, 
   Check, 
   X,
-  CalendarDays
+  CalendarDays,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, addHours, parse } from 'date-fns';
 
 const CourtDetail = () => {
   const { id } = useParams();
-  const court = courts.find((c) => c.id === id);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { data: court, isLoading: courtLoading } = useCourt(id);
+  const { data: userClass } = useUserClass(user?.id);
+  const createBooking = useCreateCourtBooking();
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [bookingType, setBookingType] = useState<'individual' | 'class'>('individual');
   
   const timeSlots = selectedDate ? generateTimeSlots(format(selectedDate, 'yyyy-MM-dd')) : [];
+
+  if (courtLoading) {
+    return (
+      <DashboardLayout title="Loading..." subtitle="">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (!court) {
     return (
@@ -45,15 +64,26 @@ const CourtDetail = () => {
     );
   }
 
-  const handleBooking = () => {
-    if (!selectedSlot || !selectedDate) {
+  const handleBooking = async () => {
+    if (!selectedSlot || !selectedDate || !user) {
       toast.error('Please select a time slot');
       return;
     }
-    
-    toast.success('Booking submitted!', {
-      description: `${court.name} on ${format(selectedDate, 'MMM dd, yyyy')} at ${selectedSlot} - ${bookingType === 'class' ? currentUser.classId : 'Individual'}`,
+
+    // Parse the time slot and create start/end times
+    const startTime = parse(selectedSlot, 'h:mm a', selectedDate);
+    const endTime = addHours(startTime, 1); // Assuming 1-hour slots
+
+    await createBooking.mutateAsync({
+      courtId: court.id,
+      userId: user.id,
+      classId: bookingType === 'class' && userClass ? userClass.id : undefined,
+      bookingType,
+      startTime,
+      endTime,
     });
+
+    navigate('/bookings');
   };
 
   return (
@@ -77,8 +107,8 @@ const CourtDetail = () => {
               <span className="text-8xl">{sportIcons[court.sport] || '🏟️'}</span>
             </div>
             <div className="absolute top-3 right-3">
-              <Badge className={court.available ? 'bg-success/90' : 'bg-destructive/90'}>
-                {court.available ? <><Check className="w-3 h-3 mr-1" /> Available</> : <><X className="w-3 h-3 mr-1" /> Booked</>}
+              <Badge className={court.is_available ? 'bg-success/90' : 'bg-destructive/90'}>
+                {court.is_available ? <><Check className="w-3 h-3 mr-1" /> Available</> : <><X className="w-3 h-3 mr-1" /> Booked</>}
               </Badge>
             </div>
           </div>
@@ -102,16 +132,18 @@ const CourtDetail = () => {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-border">
-              <p className="text-sm text-muted-foreground mb-2">Features</p>
-              <div className="flex flex-wrap gap-1.5">
-                {court.features.map((feature) => (
-                  <Badge key={feature} variant="secondary" className="text-xs">
-                    {feature}
-                  </Badge>
-                ))}
+            {court.amenities && court.amenities.length > 0 && (
+              <div className="pt-3 border-t border-border">
+                <p className="text-sm text-muted-foreground mb-2">Features</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {court.amenities.map((feature) => (
+                    <Badge key={feature} variant="secondary" className="text-xs">
+                      {feature}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </motion.div>
 
@@ -196,10 +228,12 @@ const CourtDetail = () => {
               </div>
               
               <div className={`relative flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${bookingType === 'class' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}>
-                <RadioGroupItem value="class" id="class" className="mr-3" />
+                <RadioGroupItem value="class" id="class" className="mr-3" disabled={!userClass} />
                 <Label htmlFor="class" className="cursor-pointer flex-1">
                   <div className="font-semibold text-foreground">Class Booking</div>
-                  <div className="text-sm text-muted-foreground">Book for {currentUser.classId}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {userClass ? `Book for ${userClass.name}` : 'No class assigned'}
+                  </div>
                 </Label>
               </div>
             </RadioGroup>
@@ -233,7 +267,7 @@ const CourtDetail = () => {
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Booking Type</span>
                 <span className="font-medium text-foreground">
-                  {bookingType === 'class' ? currentUser.classId : 'Individual'}
+                  {bookingType === 'class' && userClass ? userClass.name : 'Individual'}
                 </span>
               </div>
             </div>
@@ -243,9 +277,16 @@ const CourtDetail = () => {
               size="lg"
               className="w-full"
               onClick={handleBooking}
-              disabled={!selectedSlot || !selectedDate}
+              disabled={!selectedSlot || !selectedDate || createBooking.isPending}
             >
-              Confirm Booking
+              {createBooking.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Confirm Booking'
+              )}
             </Button>
           </div>
         </motion.div>
