@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { pendingBookings, PendingBooking } from '@/lib/admin-data';
+import { 
+  useAllPendingBookings, 
+  useApproveBooking, 
+  useRejectBooking, 
+  useBulkApproveBookings,
+  AdminBooking 
+} from '@/hooks/useAdminBookings';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -13,22 +19,36 @@ import {
   XCircle,
   Clock,
   Users,
-  Filter
+  Filter,
+  Loader2
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { format } from 'date-fns';
 
 const AdminApprovals = () => {
-  const [bookings, setBookings] = useState(pendingBookings);
+  const { data: bookings = [], isLoading } = useAllPendingBookings();
+  const approveBooking = useApproveBooking();
+  const rejectBooking = useRejectBooking();
+  const bulkApprove = useBulkApproveBookings();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'court' | 'equipment'>('all');
 
   const filteredBookings = bookings.filter((booking) => {
+    const userName = booking.profile?.full_name || '';
+    const courtName = booking.court?.name || '';
+    const equipmentName = booking.equipment?.name || '';
+    
     const matchesSearch =
-      booking.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.courtName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.equipmentName?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filter === 'all' || booking.type === filter;
+      userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      courtName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      equipmentName.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesFilter = 
+      filter === 'all' || 
+      (filter === 'court' && booking.resource_type === 'court') ||
+      (filter === 'equipment' && booking.resource_type === 'equipment');
+    
     return matchesSearch && matchesFilter;
   });
 
@@ -37,19 +57,29 @@ const AdminApprovals = () => {
   const rejectedCount = filteredBookings.filter(b => b.status === 'rejected').length;
 
   const handleApprove = (id: string) => {
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'approved' as const } : b));
-    toast.success('Booking approved!');
+    approveBooking.mutate(id);
   };
 
   const handleReject = (id: string) => {
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'rejected' as const } : b));
-    toast.error('Booking rejected');
+    rejectBooking.mutate(id);
   };
 
   const handleApproveAll = () => {
-    setBookings(prev => prev.map(b => b.status === 'pending' ? { ...b, status: 'approved' as const } : b));
-    toast.success('All pending bookings approved!');
+    const pendingIds = filteredBookings
+      .filter(b => b.status === 'pending')
+      .map(b => b.id);
+    bulkApprove.mutate(pendingIds);
   };
+
+  if (isLoading) {
+    return (
+      <AdminLayout title="Booking Approvals" subtitle="Loading...">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout
@@ -99,8 +129,16 @@ const AdminApprovals = () => {
         </div>
 
         {pendingCount > 0 && (
-          <Button variant="accent" onClick={handleApproveAll}>
-            <CheckCircle className="w-4 h-4 mr-2" />
+          <Button 
+            variant="accent" 
+            onClick={handleApproveAll}
+            disabled={bulkApprove.isPending}
+          >
+            {bulkApprove.isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <CheckCircle className="w-4 h-4 mr-2" />
+            )}
             Approve All Pending
           </Button>
         )}
@@ -131,6 +169,8 @@ const AdminApprovals = () => {
                       index={index}
                       onApprove={handleApprove}
                       onReject={handleReject}
+                      isApproving={approveBooking.isPending}
+                      isRejecting={rejectBooking.isPending}
                     />
                   ))
               ) : (
@@ -160,18 +200,37 @@ const AdminApprovals = () => {
 };
 
 interface BookingApprovalCardProps {
-  booking: PendingBooking;
+  booking: AdminBooking;
   index: number;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  isApproving: boolean;
+  isRejecting: boolean;
 }
 
-const BookingApprovalCard = ({ booking, index, onApprove, onReject }: BookingApprovalCardProps) => {
+const BookingApprovalCard = ({ 
+  booking, 
+  index, 
+  onApprove, 
+  onReject,
+  isApproving,
+  isRejecting 
+}: BookingApprovalCardProps) => {
   const statusColors = {
     pending: 'bg-warning/20 text-warning border-warning/30',
     approved: 'bg-success/20 text-success border-success/30',
     rejected: 'bg-destructive/20 text-destructive border-destructive/30',
+    completed: 'bg-muted/20 text-muted-foreground border-muted/30',
+    cancelled: 'bg-muted/20 text-muted-foreground border-muted/30',
   };
+
+  const resourceName = booking.court?.name || booking.equipment?.name || 'Unknown';
+  const userName = booking.profile?.full_name || 'Unknown User';
+  const userClass = booking.class?.name || 'Individual';
+  const bookingDate = format(new Date(booking.start_time), 'MMM dd, yyyy');
+  const startTime = format(new Date(booking.start_time), 'h:mm a');
+  const endTime = format(new Date(booking.end_time), 'h:mm a');
+  const requestedAt = format(new Date(booking.created_at), 'MMM dd, h:mm a');
 
   return (
     <motion.div
@@ -182,46 +241,51 @@ const BookingApprovalCard = ({ booking, index, onApprove, onReject }: BookingApp
     >
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex items-start gap-4">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${booking.type === 'court' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent'}`}>
-            {booking.type === 'court' ? <Calendar className="w-6 h-6" /> : <Package className="w-6 h-6" />}
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${booking.resource_type === 'court' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent'}`}>
+            {booking.resource_type === 'court' ? <Calendar className="w-6 h-6" /> : <Package className="w-6 h-6" />}
           </div>
           
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <h4 className="font-display font-semibold text-foreground">
-                {booking.courtName || booking.equipmentName}
+                {resourceName}
               </h4>
-              <Badge className={statusColors[booking.status]}>
+              <Badge className={statusColors[booking.status as keyof typeof statusColors] || statusColors.pending}>
                 {booking.status}
               </Badge>
+              {booking.quantity && booking.quantity > 1 && (
+                <Badge variant="secondary" className="text-xs">
+                  ×{booking.quantity}
+                </Badge>
+              )}
             </div>
             
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Users className="w-3.5 h-3.5" />
-                {booking.userName}
+                {userName}
               </div>
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Badge variant="secondary" className="text-xs">
-                  {booking.userClass}
+                  {userClass}
                 </Badge>
               </div>
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Calendar className="w-3.5 h-3.5" />
-                {booking.date}
+                {bookingDate}
               </div>
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Clock className="w-3.5 h-3.5" />
-                {booking.startTime} - {booking.endTime}
+                {startTime} - {endTime}
               </div>
             </div>
 
             <div className="flex items-center gap-2 mt-2">
               <Badge variant="secondary" className="text-xs">
-                {booking.bookingType === 'class' ? 'Class Booking' : 'Individual'}
+                {booking.booking_type === 'class' ? 'Class Booking' : 'Individual'}
               </Badge>
               <span className="text-xs text-muted-foreground">
-                Requested: {booking.requestedAt}
+                Requested: {requestedAt}
               </span>
             </div>
           </div>
@@ -233,15 +297,25 @@ const BookingApprovalCard = ({ booking, index, onApprove, onReject }: BookingApp
               variant="outline" 
               className="text-destructive border-destructive/30 hover:bg-destructive/10"
               onClick={() => onReject(booking.id)}
+              disabled={isRejecting}
             >
-              <XCircle className="w-4 h-4 mr-2" />
+              {isRejecting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <XCircle className="w-4 h-4 mr-2" />
+              )}
               Reject
             </Button>
             <Button 
               variant="hero"
               onClick={() => onApprove(booking.id)}
+              disabled={isApproving}
             >
-              <CheckCircle className="w-4 h-4 mr-2" />
+              {isApproving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle className="w-4 h-4 mr-2" />
+              )}
               Approve
             </Button>
           </div>
