@@ -1,9 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
+import { format, startOfDay, endOfDay, parseISO, addHours } from 'date-fns';
 
 export type Court = Tables<'courts'>;
 export type Equipment = Tables<'equipment'>;
+export type Booking = Tables<'bookings'>;
+
+export interface TimeSlot {
+  id: string;
+  time: string;
+  available: boolean;
+  bookedBy?: string;
+  bookingType?: 'individual' | 'class';
+}
 
 export function useCourts() {
   return useQuery({
@@ -37,6 +47,70 @@ export function useCourt(id: string | undefined) {
     },
     enabled: !!id,
   });
+}
+
+export function useCourtBookings(courtId: string | undefined, date: Date | undefined) {
+  const dateStr = date ? format(date, 'yyyy-MM-dd') : null;
+  
+  return useQuery({
+    queryKey: ['court-bookings', courtId, dateStr],
+    queryFn: async () => {
+      if (!courtId || !date) return [];
+      
+      const dayStart = startOfDay(date).toISOString();
+      const dayEnd = endOfDay(date).toISOString();
+      
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*, class:classes(name)')
+        .eq('court_id', courtId)
+        .eq('resource_type', 'court')
+        .in('status', ['pending', 'approved'])
+        .gte('start_time', dayStart)
+        .lte('start_time', dayEnd);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!courtId && !!date,
+  });
+}
+
+// Generate time slots with real availability based on existing bookings
+export function generateTimeSlotsWithBookings(
+  date: Date,
+  bookings: Array<{ start_time: string; end_time: string; booking_type: string }> = []
+): TimeSlot[] {
+  const slots: TimeSlot[] = [];
+  const startHour = 6; // 6 AM
+  const endHour = 22; // 10 PM
+
+  for (let hour = startHour; hour < endHour; hour++) {
+    const slotTime = new Date(date);
+    slotTime.setHours(hour, 0, 0, 0);
+    
+    const slotEnd = addHours(slotTime, 1);
+    
+    // Check if this slot overlaps with any booking
+    const conflictingBooking = bookings.find(booking => {
+      const bookingStart = parseISO(booking.start_time);
+      const bookingEnd = parseISO(booking.end_time);
+      
+      // Check for overlap: slot overlaps if it starts before booking ends AND ends after booking starts
+      return slotTime < bookingEnd && slotEnd > bookingStart;
+    });
+    
+    const timeString = format(slotTime, 'h:mm a');
+    
+    slots.push({
+      id: `slot-${hour}`,
+      time: timeString,
+      available: !conflictingBooking,
+      bookingType: conflictingBooking?.booking_type as 'individual' | 'class' | undefined,
+    });
+  }
+
+  return slots;
 }
 
 export function useEquipment() {
