@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
-import { generateTimeSlots, sportIcons } from '@/lib/data';
-import { useCourt } from '@/hooks/useResources';
+import { sportIcons } from '@/lib/data';
+import { useCourt, useCourtBookings, generateTimeSlotsWithBookings } from '@/hooks/useResources';
 import { useUserClass } from '@/hooks/useClasses';
 import { useCreateCourtBooking } from '@/hooks/useBookingMutations';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,8 +36,21 @@ const CourtDetail = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [bookingType, setBookingType] = useState<'individual' | 'class'>('individual');
+
+  // Clear selected slot when date changes
+  const handleDateChange = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setSelectedSlot(null);
+  };
   
-  const timeSlots = selectedDate ? generateTimeSlots(format(selectedDate, 'yyyy-MM-dd')) : [];
+  // Fetch existing bookings for the selected date
+  const { data: existingBookings, isLoading: bookingsLoading } = useCourtBookings(id, selectedDate);
+  
+  // Generate time slots with real availability based on existing bookings
+  const timeSlots = useMemo(() => {
+    if (!selectedDate) return [];
+    return generateTimeSlotsWithBookings(selectedDate, existingBookings || []);
+  }, [selectedDate, existingBookings]);
 
   if (courtLoading) {
     return (
@@ -166,7 +179,7 @@ const CourtDetail = () => {
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={setSelectedDate}
+                  onSelect={handleDateChange}
                   disabled={(date) => date < new Date()}
                   className="rounded-lg border border-border bg-secondary p-3"
                 />
@@ -176,6 +189,7 @@ const CourtDetail = () => {
               <div>
                 <p className="text-sm font-medium text-foreground mb-3">
                   {selectedDate ? format(selectedDate, 'EEEE, MMMM d') : 'Select a date'}
+                  {bookingsLoading && <Loader2 className="inline w-3 h-3 ml-2 animate-spin" />}
                 </p>
                 
                 <div className="grid grid-cols-3 gap-2 max-h-[280px] overflow-y-auto pr-2">
