@@ -8,6 +8,7 @@ import {
   useBulkApproveBookings,
   AdminBooking 
 } from '@/hooks/useAdminBookings';
+import { useRealtimeBookings } from '@/hooks/useRealtimeBookings';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 
 const AdminApprovals = () => {
+  // Subscribe to real-time booking updates
+  useRealtimeBookings();
+  
   const { data: bookings = [], isLoading } = useAllPendingBookings();
   const approveBooking = useApproveBooking();
   const rejectBooking = useRejectBooking();

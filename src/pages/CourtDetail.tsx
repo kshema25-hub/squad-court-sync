@@ -6,6 +6,7 @@ import { sportIcons } from '@/lib/data';
 import { useCourt, useCourtBookings, useCourtMonthBookings, generateTimeSlotsWithBookings, getDatesWithBookings } from '@/hooks/useResources';
 import { useUserClass } from '@/hooks/useClasses';
 import { useCreateCourtBooking } from '@/hooks/useBookingMutations';
+import { useRealtimeCourtBookings } from '@/hooks/useRealtimeBookings';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +34,8 @@ const CourtDetail = () => {
   const { data: userClass } = useUserClass(user?.id);
   const createBooking = useCreateCourtBooking();
   
+  // Subscribe to real-time booking updates for this court
+  useRealtimeCourtBookings(id);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [bookingType, setBookingType] = useState<'individual' | 'class'>('individual');

@@ -9,9 +9,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUpcomingBookings, useBookingStats } from '@/hooks/useBookings';
 import { useAvailableCourtsCount, useAvailableEquipmentCount } from '@/hooks/useResources';
 import { useUserClass } from '@/hooks/useClasses';
+import { useRealtimeBookings } from '@/hooks/useRealtimeBookings';
 
 const Dashboard = () => {
   const { user, profile } = useAuth();
+  
+  // Subscribe to real-time booking updates
+  useRealtimeBookings();
+  
   const { data: upcomingBookings, isLoading: bookingsLoading } = useUpcomingBookings(user?.id);
   const { data: stats, isLoading: statsLoading } = useBookingStats(user?.id);
   const { data: availableCourts } = useAvailableCourtsCount();
