@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { sportIcons } from '@/lib/data';
-import { useCourt, useCourtBookings, generateTimeSlotsWithBookings } from '@/hooks/useResources';
+import { useCourt, useCourtBookings, useCourtMonthBookings, generateTimeSlotsWithBookings, getDatesWithBookings } from '@/hooks/useResources';
 import { useUserClass } from '@/hooks/useClasses';
 import { useCreateCourtBooking } from '@/hooks/useBookingMutations';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,6 +36,7 @@ const CourtDetail = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [bookingType, setBookingType] = useState<'individual' | 'class'>('individual');
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
 
   // Clear selected slot when date changes
   const handleDateChange = (date: Date | undefined) => {
@@ -45,6 +46,14 @@ const CourtDetail = () => {
   
   // Fetch existing bookings for the selected date
   const { data: existingBookings, isLoading: bookingsLoading } = useCourtBookings(id, selectedDate);
+  
+  // Fetch month bookings for calendar indicators
+  const { data: monthBookings } = useCourtMonthBookings(id, calendarMonth);
+  
+  // Get dates with bookings for calendar highlighting
+  const { bookedDates, classBookedDates, partiallyBookedDates } = useMemo(() => {
+    return getDatesWithBookings(monthBookings || []);
+  }, [monthBookings]);
   
   // Generate time slots with real availability based on existing bookings
   const timeSlots = useMemo(() => {
@@ -180,9 +189,35 @@ const CourtDetail = () => {
                   mode="single"
                   selected={selectedDate}
                   onSelect={handleDateChange}
+                  onMonthChange={setCalendarMonth}
                   disabled={(date) => date < new Date()}
-                  className="rounded-lg border border-border bg-secondary p-3"
+                  modifiers={{
+                    fullyBooked: bookedDates,
+                    classBooked: classBookedDates,
+                    partiallyBooked: partiallyBookedDates,
+                  }}
+                  modifiersClassNames={{
+                    fullyBooked: 'bg-destructive/20 text-destructive-foreground border-destructive/50',
+                    classBooked: 'bg-warning/20 text-warning-foreground border-warning/50',
+                    partiallyBooked: 'bg-primary/20 border-primary/30',
+                  }}
+                  className="rounded-lg border border-border bg-secondary p-3 pointer-events-auto"
                 />
+                {/* Legend */}
+                <div className="flex flex-wrap gap-3 mt-3 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded bg-primary/20 border border-primary/30"></span>
+                    <span className="text-muted-foreground">Has bookings</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded bg-warning/20 border border-warning/50"></span>
+                    <span className="text-muted-foreground">Class booking</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded bg-destructive/20 border border-destructive/50"></span>
+                    <span className="text-muted-foreground">Fully booked</span>
+                  </div>
+                </div>
               </div>
 
               {/* Time Slots */}

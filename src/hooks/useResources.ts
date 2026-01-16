@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
-import { format, startOfDay, endOfDay, parseISO, addHours } from 'date-fns';
+import { format, startOfDay, endOfDay, parseISO, addHours, startOfMonth, endOfMonth, isSameDay } from 'date-fns';
 
 export type Court = Tables<'courts'>;
 export type Equipment = Tables<'equipment'>;
@@ -13,6 +13,13 @@ export interface TimeSlot {
   available: boolean;
   bookedBy?: string;
   bookingType?: 'individual' | 'class';
+}
+
+export interface DayBookingInfo {
+  date: Date;
+  bookingCount: number;
+  hasClassBooking: boolean;
+  isFullyBooked: boolean;
 }
 
 export function useCourts() {
@@ -74,6 +81,71 @@ export function useCourtBookings(courtId: string | undefined, date: Date | undef
     },
     enabled: !!courtId && !!date,
   });
+}
+
+// Fetch all bookings for a court within a month range for calendar indicators
+export function useCourtMonthBookings(courtId: string | undefined, month: Date | undefined) {
+  const monthStr = month ? format(month, 'yyyy-MM') : null;
+  
+  return useQuery({
+    queryKey: ['court-month-bookings', courtId, monthStr],
+    queryFn: async () => {
+      if (!courtId || !month) return [];
+      
+      const monthStart = startOfMonth(month).toISOString();
+      const monthEnd = endOfMonth(month).toISOString();
+      
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('start_time, end_time, booking_type')
+        .eq('court_id', courtId)
+        .eq('resource_type', 'court')
+        .in('status', ['pending', 'approved'])
+        .gte('start_time', monthStart)
+        .lte('start_time', monthEnd);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!courtId && !!month,
+  });
+}
+
+// Get dates with bookings for calendar highlighting
+export function getDatesWithBookings(
+  bookings: Array<{ start_time: string; booking_type: string }> = []
+): { bookedDates: Date[]; classBookedDates: Date[]; partiallyBookedDates: Date[] } {
+  const dateBookingsMap = new Map<string, { count: number; hasClass: boolean }>();
+  const totalSlotsPerDay = 16; // 6 AM to 10 PM = 16 slots
+  
+  bookings.forEach(booking => {
+    const bookingDate = parseISO(booking.start_time);
+    const dateKey = format(bookingDate, 'yyyy-MM-dd');
+    
+    const existing = dateBookingsMap.get(dateKey) || { count: 0, hasClass: false };
+    dateBookingsMap.set(dateKey, {
+      count: existing.count + 1,
+      hasClass: existing.hasClass || booking.booking_type === 'class',
+    });
+  });
+  
+  const bookedDates: Date[] = [];
+  const classBookedDates: Date[] = [];
+  const partiallyBookedDates: Date[] = [];
+  
+  dateBookingsMap.forEach((info, dateKey) => {
+    const date = parseISO(dateKey);
+    
+    if (info.count >= totalSlotsPerDay) {
+      bookedDates.push(date);
+    } else if (info.hasClass) {
+      classBookedDates.push(date);
+    } else if (info.count > 0) {
+      partiallyBookedDates.push(date);
+    }
+  });
+  
+  return { bookedDates, classBookedDates, partiallyBookedDates };
 }
 
 // Generate time slots with real availability based on existing bookings
