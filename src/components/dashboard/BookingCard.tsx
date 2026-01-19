@@ -1,9 +1,22 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, MapPin, Users, Package } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Package, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Booking } from '@/hooks/useBookings';
 import { format } from 'date-fns';
+import { useCancelBooking } from '@/hooks/useBookingMutations';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface BookingCardProps {
   booking: Booking;
@@ -11,6 +24,9 @@ interface BookingCardProps {
 }
 
 export const BookingCard = ({ booking, index }: BookingCardProps) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const cancelBooking = useCancelBooking();
+
   const statusColors: Record<string, string> = {
     pending: 'bg-warning/20 text-warning border-warning/30',
     approved: 'bg-success/20 text-success border-success/30',
@@ -29,6 +45,14 @@ export const BookingCard = ({ booking, index }: BookingCardProps) => {
 
   const startTime = new Date(booking.start_time);
   const endTime = new Date(booking.end_time);
+
+  const handleCancelBooking = () => {
+    cancelBooking.mutate(booking.id, {
+      onSuccess: () => {
+        setIsDialogOpen(false);
+      },
+    });
+  };
 
   return (
     <motion.div
@@ -92,9 +116,41 @@ export const BookingCard = ({ booking, index }: BookingCardProps) => {
         </div>
         <div className="flex gap-2">
           {booking.status === 'pending' && (
-            <Button variant="ghost" size="sm" className="text-destructive">
-              Cancel
-            </Button>
+            <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                  Cancel
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to cancel this booking for{' '}
+                    <span className="font-medium text-foreground">{resourceName}</span> on{' '}
+                    <span className="font-medium text-foreground">{format(startTime, 'MMM d, yyyy')}</span>?
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Keep Booking</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleCancelBooking}
+                    disabled={cancelBooking.isPending}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {cancelBooking.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Cancelling...
+                      </>
+                    ) : (
+                      'Cancel Booking'
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
           <Button variant="outline" size="sm">
             View Details
