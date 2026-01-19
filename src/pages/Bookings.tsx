@@ -7,11 +7,14 @@ import { Calendar, Plus, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useRealtimeBookings } from '@/hooks/useRealtimeBookings';
 
 const Bookings = () => {
   const { user } = useAuth();
   const { data: bookings, isLoading } = useUserBookings(user?.id);
-
+  
+  // Enable real-time updates for bookings
+  useRealtimeBookings();
   const activeBookings = bookings?.filter(
     (b) => b.status === 'approved' || b.status === 'pending'
   ) || [];
