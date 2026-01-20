@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { CourtCard } from '@/components/courts/CourtCard';
-import { courts } from '@/lib/data';
+import { useCourts } from '@/hooks/useResources';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, Grid, List } from 'lucide-react';
+import { Search, Filter, Grid, List, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Courts = () => {
+  const { data: courts = [], isLoading } = useCourts();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -89,23 +90,42 @@ const Courts = () => {
         animate={{ opacity: 1 }}
         className="text-sm text-muted-foreground mb-6"
       >
-        Showing {filteredCourts.length} of {courts.length} courts
+        {isLoading ? 'Loading courts...' : `Showing ${filteredCourts.length} of ${courts.length} courts`}
       </motion.p>
 
       {/* Courts Grid */}
-      <div
-        className={
-          viewMode === 'grid'
-            ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6'
-            : 'space-y-4'
-        }
-      >
-        {filteredCourts.map((court, index) => (
-          <CourtCard key={court.id} court={court} index={index} />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div
+          className={
+            viewMode === 'grid'
+              ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6'
+              : 'space-y-4'
+          }
+        >
+          {filteredCourts.map((court, index) => (
+            <CourtCard
+              key={court.id}
+              court={{
+                id: court.id,
+                name: court.name,
+                sport: court.sport,
+                location: court.location,
+                capacity: court.capacity,
+                image: court.image_url || '',
+                available: court.is_available,
+                features: court.amenities || [],
+              }}
+              index={index}
+            />
+          ))}
+        </div>
+      )}
 
-      {filteredCourts.length === 0 && (
+      {!isLoading && filteredCourts.length === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
