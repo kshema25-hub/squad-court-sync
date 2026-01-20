@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { BookingDetailsModal } from './BookingDetailsModal';
 
 interface BookingCardProps {
   booking: Booking;
@@ -25,6 +26,7 @@ interface BookingCardProps {
 
 export const BookingCard = ({ booking, index }: BookingCardProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const cancelBooking = useCancelBooking();
 
   const statusColors: Record<string, string> = {
@@ -152,11 +154,17 @@ export const BookingCard = ({ booking, index }: BookingCardProps) => {
               </AlertDialogContent>
             </AlertDialog>
           )}
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setIsDetailsOpen(true)}>
             View Details
           </Button>
         </div>
       </div>
+
+      <BookingDetailsModal
+        booking={booking}
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+      />
     </motion.div>
   );
 };
