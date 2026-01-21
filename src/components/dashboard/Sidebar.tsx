@@ -17,14 +17,16 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import { useUnreadNotificationCount } from '@/hooks/useNotifications';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Calendar, label: 'Courts', href: '/courts' },
   { icon: Package, label: 'Equipment', href: '/equipment' },
   { icon: CreditCard, label: 'My Bookings', href: '/bookings' },
-  { icon: Bell, label: 'Notifications', href: '/notifications' },
+  { icon: Bell, label: 'Notifications', href: '/notifications', showBadge: true },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ];
 
@@ -34,6 +36,7 @@ export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut, isAdmin, isFaculty } = useAuth();
+  const { data: unreadCount = 0 } = useUnreadNotificationCount();
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -76,25 +79,38 @@ export const Sidebar = () => {
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
           const isActive = location.pathname === item.href;
+          const showBadge = item.showBadge && unreadCount > 0;
           return (
             <Link key={item.href} to={item.href}>
               <div
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 relative',
                   isActive
                     ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-glow'
                     : 'text-sidebar-foreground hover:bg-sidebar-accent'
                 )}
               >
-                <item.icon className="w-5 h-5 shrink-0" />
+                <div className="relative shrink-0">
+                  <item.icon className="w-5 h-5" />
+                  {showBadge && collapsed && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full" />
+                  )}
+                </div>
                 {!collapsed && (
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="font-medium text-sm"
-                  >
-                    {item.label}
-                  </motion.span>
+                  <>
+                    <motion.span
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="font-medium text-sm flex-1"
+                    >
+                      {item.label}
+                    </motion.span>
+                    {showBadge && (
+                      <Badge className="bg-destructive text-destructive-foreground text-xs px-1.5 py-0.5 min-w-[20px] h-5 flex items-center justify-center">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </Badge>
+                    )}
+                  </>
                 )}
               </div>
             </Link>

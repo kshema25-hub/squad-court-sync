@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -5,6 +6,47 @@ import { toast } from 'sonner';
 import { Tables } from '@/integrations/supabase/types';
 
 export type Notification = Tables<'notifications'>;
+
+// Real-time subscription hook for notifications
+export function useRealtimeNotifications() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('notifications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Notification change:', payload);
+          // Invalidate queries to refresh data
+          queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['notifications-count', user.id] });
+
+          // Show toast for new notifications
+          if (payload.eventType === 'INSERT') {
+            const newNotification = payload.new as Notification;
+            toast(newNotification.title, {
+              description: newNotification.message,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
+}
 
 export function useNotifications() {
   const { user } = useAuth();
