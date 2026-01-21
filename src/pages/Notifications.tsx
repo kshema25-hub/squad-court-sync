@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -10,77 +9,37 @@ import {
   AlertTriangle, 
   CheckCircle, 
   Clock,
-  Trash2,
-  CheckCheck
+  CheckCheck,
+  Loader2,
+  Info,
+  XCircle
 } from 'lucide-react';
-
-interface Notification {
-  id: string;
-  type: 'booking' | 'equipment' | 'reminder' | 'penalty' | 'system';
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-}
-
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'booking',
-    title: 'Booking Approved',
-    message: 'Your booking for Indoor Basketball Court A on Jan 15 has been approved.',
-    time: '2 hours ago',
-    read: false,
-  },
-  {
-    id: '2',
-    type: 'reminder',
-    title: 'Upcoming Booking',
-    message: 'Reminder: You have a court booking tomorrow at 2:00 PM.',
-    time: '5 hours ago',
-    read: false,
-  },
-  {
-    id: '3',
-    type: 'equipment',
-    title: 'Equipment Due Soon',
-    message: 'Tennis Racket is due for return in 2 hours. Please return on time to avoid penalties.',
-    time: '1 day ago',
-    read: true,
-  },
-  {
-    id: '4',
-    type: 'system',
-    title: 'New Court Available',
-    message: 'A new Squash Court has been added to the Sports Complex. Book now!',
-    time: '2 days ago',
-    read: true,
-  },
-  {
-    id: '5',
-    type: 'penalty',
-    title: 'Penalty Cleared',
-    message: 'Your pending penalty of ₹50 has been cleared. Thank you!',
-    time: '3 days ago',
-    read: true,
-  },
-];
+import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead, Notification } from '@/hooks/useNotifications';
+import { formatDistanceToNow } from 'date-fns';
 
 const Notifications = () => {
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const { data: notifications = [], isLoading } = useNotifications();
+  const markAsRead = useMarkNotificationRead();
+  const markAllAsRead = useMarkAllNotificationsRead();
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const getIcon = (type: string) => {
     switch (type) {
+      case 'success':
+        return CheckCircle;
+      case 'error':
+        return XCircle;
+      case 'warning':
+        return AlertTriangle;
       case 'booking':
         return Calendar;
       case 'equipment':
         return Package;
       case 'reminder':
         return Clock;
-      case 'penalty':
-        return AlertTriangle;
+      case 'info':
+        return Info;
       default:
         return Bell;
     }
@@ -88,36 +47,52 @@ const Notifications = () => {
 
   const getIconColor = (type: string) => {
     switch (type) {
+      case 'success':
+        return 'text-success bg-success/10';
+      case 'error':
+        return 'text-destructive bg-destructive/10';
+      case 'warning':
+        return 'text-warning bg-warning/10';
       case 'booking':
         return 'text-primary bg-primary/10';
       case 'equipment':
         return 'text-accent bg-accent/10';
       case 'reminder':
         return 'text-info bg-info/10';
-      case 'penalty':
-        return 'text-warning bg-warning/10';
+      case 'info':
+        return 'text-info bg-info/10';
       default:
         return 'text-muted-foreground bg-muted';
     }
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+  const handleMarkAsRead = (notification: Notification) => {
+    if (!notification.is_read) {
+      markAsRead.mutate(notification.id);
+    }
+  };
+
+  const handleMarkAllAsRead = () => {
+    markAllAsRead.mutate();
+  };
+
+  const formatTime = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    } catch {
+      return 'Recently';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout title="Notifications" subtitle="Loading...">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
     );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
-
-  const deleteNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
-
-  const clearAll = () => {
-    setNotifications([]);
-  };
+  }
 
   return (
     <DashboardLayout
@@ -133,21 +108,15 @@ const Notifications = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={markAllAsRead}
-          disabled={unreadCount === 0}
+          onClick={handleMarkAllAsRead}
+          disabled={unreadCount === 0 || markAllAsRead.isPending}
         >
-          <CheckCheck className="w-4 h-4 mr-2" />
+          {markAllAsRead.isPending ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <CheckCheck className="w-4 h-4 mr-2" />
+          )}
           Mark All Read
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearAll}
-          disabled={notifications.length === 0}
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 className="w-4 h-4 mr-2" />
-          Clear All
         </Button>
       </motion.div>
 
@@ -164,9 +133,9 @@ const Notifications = () => {
                 transition={{ delay: index * 0.05 }}
                 className={`
                   bg-gradient-card rounded-xl p-4 border transition-all duration-300 cursor-pointer
-                  ${notification.read ? 'border-border' : 'border-primary/30 bg-primary/5'}
+                  ${notification.is_read ? 'border-border' : 'border-primary/30 bg-primary/5'}
                 `}
-                onClick={() => markAsRead(notification.id)}
+                onClick={() => handleMarkAsRead(notification)}
               >
                 <div className="flex items-start gap-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${getIconColor(notification.type)}`}>
@@ -177,26 +146,19 @@ const Notifications = () => {
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <h4 className="font-semibold text-foreground">{notification.title}</h4>
                       <div className="flex items-center gap-2 shrink-0">
-                        {!notification.read && (
+                        {!notification.is_read && (
                           <Badge className="bg-primary/20 text-primary border-0 text-xs">
                             New
                           </Badge>
                         )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteNotification(notification.id);
-                          }}
-                          className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
                       </div>
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">
                       {notification.message}
                     </p>
-                    <span className="text-xs text-muted-foreground">{notification.time}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatTime(notification.created_at)}
+                    </span>
                   </div>
                 </div>
               </motion.div>
