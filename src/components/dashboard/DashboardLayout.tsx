@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { motion } from 'framer-motion';
+import { useRealtimeNotifications } from '@/hooks/useNotifications';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -9,6 +10,9 @@ interface DashboardLayoutProps {
 }
 
 export const DashboardLayout = ({ children, title, subtitle }: DashboardLayoutProps) => {
+  // Subscribe to real-time notification updates
+  useRealtimeNotifications();
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
