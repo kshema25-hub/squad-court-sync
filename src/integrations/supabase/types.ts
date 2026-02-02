@@ -159,31 +159,40 @@ export type Database = {
       }
       classes: {
         Row: {
+          class_code: string | null
           class_id: string
           created_at: string
           department: string
           id: string
+          is_active: boolean | null
           name: string
+          representative_user_id: string | null
           student_count: number
           updated_at: string
           year: number
         }
         Insert: {
+          class_code?: string | null
           class_id: string
           created_at?: string
           department: string
           id?: string
+          is_active?: boolean | null
           name: string
+          representative_user_id?: string | null
           student_count?: number
           updated_at?: string
           year: number
         }
         Update: {
+          class_code?: string | null
           class_id?: string
           created_at?: string
           department?: string
           id?: string
+          is_active?: boolean | null
           name?: string
+          representative_user_id?: string | null
           student_count?: number
           updated_at?: string
           year?: number
@@ -358,10 +367,12 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          class_id: string | null
           created_at: string
           email: string
           full_name: string
           id: string
+          is_representative: boolean | null
           phone: string | null
           student_id: string | null
           updated_at: string
@@ -369,10 +380,12 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          class_id?: string | null
           created_at?: string
           email: string
           full_name: string
           id?: string
+          is_representative?: boolean | null
           phone?: string | null
           student_id?: string | null
           updated_at?: string
@@ -380,16 +393,26 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          class_id?: string | null
           created_at?: string
           email?: string
           full_name?: string
           id?: string
+          is_representative?: boolean | null
           phone?: string | null
           student_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -418,6 +441,8 @@ export type Database = {
         Args: { _faculty_user_id: string; _student_user_id: string }
         Returns: boolean
       }
+      generate_class_code: { Args: never; Returns: string }
+      get_class_by_code: { Args: { _class_code: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
