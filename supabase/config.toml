@@ -2,3 +2,9 @@ project_id = "aezfwutplznngkwodseq"
 
 [functions.send-booking-notification]
 verify_jwt = false
+
+[functions.register-class]
+verify_jwt = false
+
+[functions.validate-class-login]
+verify_jwt = false
