@@ -69,7 +69,17 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (authError) {
       console.error("Error creating user:", authError);
-      throw new Error(authError.message);
+      // Return user-friendly error for duplicate email
+      if (authError.message.includes("already been registered") || authError.code === "email_exists") {
+        return new Response(
+          JSON.stringify({ error: "This email is already registered. Please use a different email or try logging in." }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ error: authError.message }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
 
     const userId = authData.user.id;
