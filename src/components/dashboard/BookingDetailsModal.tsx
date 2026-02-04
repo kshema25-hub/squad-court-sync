@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { format, differenceInHours, differenceInMinutes } from 'date-fns';
 import {
   Dialog,
@@ -24,9 +25,12 @@ import {
   AlertCircle,
   Loader2,
   User,
+  Ticket,
 } from 'lucide-react';
 import { useBookingHistory, StatusHistoryEntry } from '@/hooks/useBookingHistory';
 import { useCancelBooking } from '@/hooks/useBookingMutations';
+import { useAuth } from '@/hooks/useAuth';
+import { BookingPassModal } from '@/components/booking/BookingPassModal';
 import type { Booking } from '@/hooks/useBookings';
 
 interface BookingDetailsModalProps {
@@ -155,8 +159,10 @@ function StatusHistoryTimeline({ history, isLoading }: { history: StatusHistoryE
 }
 
 export function BookingDetailsModal({ booking, open, onOpenChange }: BookingDetailsModalProps) {
+  const [showPassModal, setShowPassModal] = useState(false);
   const { data: history = [], isLoading: historyLoading } = useBookingHistory(booking?.id);
   const cancelBooking = useCancelBooking();
+  const { profile } = useAuth();
 
   if (!booking) return null;
 
@@ -164,6 +170,10 @@ export function BookingDetailsModal({ booking, open, onOpenChange }: BookingDeta
     booking.court?.name || booking.equipment?.name || booking.class?.name || 'Unknown Resource';
   const location = booking.court?.location || 'N/A';
   const statusInfo = getStatusConfig(booking.status);
+  
+  // Find when booking was approved from history
+  const approvalEntry = history.find(h => h.new_status === 'approved');
+  const approvedAt = approvalEntry?.changed_at;
 
   const handleCancel = () => {
     cancelBooking.mutate(booking.id, {
@@ -300,6 +310,15 @@ export function BookingDetailsModal({ booking, open, onOpenChange }: BookingDeta
 
         {/* Footer */}
         <div className="flex justify-end gap-2 pt-4 border-t">
+          {booking.status === 'approved' && (
+            <Button
+              variant="hero"
+              onClick={() => setShowPassModal(true)}
+            >
+              <Ticket className="w-4 h-4 mr-2" />
+              View Pass
+            </Button>
+          )}
           {booking.status === 'pending' && (
             <Button
               variant="destructive"
@@ -315,6 +334,15 @@ export function BookingDetailsModal({ booking, open, onOpenChange }: BookingDeta
           </Button>
         </div>
       </DialogContent>
+
+      {/* Booking Pass Modal */}
+      <BookingPassModal
+        open={showPassModal}
+        onOpenChange={setShowPassModal}
+        booking={booking}
+        userName={profile?.full_name || 'Unknown'}
+        approvedAt={approvedAt}
+      />
     </Dialog>
   );
 }
