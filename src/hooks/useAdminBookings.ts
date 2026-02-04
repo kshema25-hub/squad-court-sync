@@ -65,7 +65,9 @@ export function useApproveBooking() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'bookings'] });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
-      toast.success('Booking approved!');
+      toast.success('Booking approved!', {
+        description: 'Booking pass is now available for the student to download.',
+      });
     },
     onError: (error: Error) => {
       toast.error('Failed to approve booking', {
@@ -115,7 +117,9 @@ export function useBulkApproveBookings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'bookings'] });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
-      toast.success('All pending bookings approved!');
+      toast.success('All pending bookings approved!', {
+        description: 'Booking passes are now available for students to download.',
+      });
     },
     onError: (error: Error) => {
       toast.error('Failed to approve bookings', {

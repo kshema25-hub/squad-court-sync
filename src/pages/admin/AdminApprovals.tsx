@@ -21,7 +21,8 @@ import {
   Clock,
   Users,
   Filter,
-  Loader2
+  Loader2,
+  Ticket
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
@@ -322,6 +323,15 @@ const BookingApprovalCard = ({
               )}
               Approve
             </Button>
+          </div>
+        )}
+
+        {booking.status === 'approved' && (
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 text-sm text-success bg-success/10 px-3 py-1.5 rounded-full">
+              <Ticket className="w-4 h-4" />
+              <span>Pass Available</span>
+            </div>
           </div>
         )}
       </div>
