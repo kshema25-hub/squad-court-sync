@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -6,25 +6,38 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { currentUser } from '@/lib/data';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   User, 
   Bell, 
   Shield, 
-  Palette,
   Mail,
   Phone,
   GraduationCap,
-  Save
+  Save,
+  Loader2,
+  Users
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface ClassInfo {
+  name: string;
+  class_id: string;
+  class_code: string | null;
+  department: string;
+}
+
 const Settings = () => {
-  const [profile, setProfile] = useState({
-    name: currentUser.name,
-    email: currentUser.email,
-    phone: '+91 98765 43210',
-    studentId: currentUser.studentId,
+  const { user, profile, loading: authLoading } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
+  
+  const [formProfile, setFormProfile] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    student_id: '',
   });
 
   const [notifications, setNotifications] = useState({
@@ -35,13 +48,72 @@ const Settings = () => {
     emailNotifications: false,
   });
 
-  const handleSaveProfile = () => {
-    toast.success('Profile updated successfully!');
+  // Load profile data when available
+  useEffect(() => {
+    if (profile) {
+      setFormProfile({
+        full_name: profile.full_name || '',
+        email: profile.email || '',
+        phone: profile.phone || '',
+        student_id: profile.student_id || '',
+      });
+    }
+  }, [profile]);
+
+  // Fetch class info
+  useEffect(() => {
+    const fetchClassInfo = async () => {
+      if (!profile?.class_id) return;
+      
+      const { data, error } = await supabase
+        .from('classes')
+        .select('name, class_id, class_code, department')
+        .eq('id', profile.class_id)
+        .single();
+      
+      if (!error && data) {
+        setClassInfo(data);
+      }
+    };
+    
+    fetchClassInfo();
+  }, [profile?.class_id]);
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: formProfile.full_name,
+          phone: formProfile.phone,
+        })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      toast.success('Profile updated successfully!');
+    } catch (error: any) {
+      toast.error('Failed to update profile: ' + error.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSaveNotifications = () => {
     toast.success('Notification preferences saved!');
   };
+
+  if (authLoading) {
+    return (
+      <DashboardLayout title="Settings" subtitle="Manage your account and preferences">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout
@@ -76,8 +148,8 @@ const Settings = () => {
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="name"
-                  value={profile.name}
-                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                  value={formProfile.full_name}
+                  onChange={(e) => setFormProfile({ ...formProfile, full_name: e.target.value })}
                   className="pl-10 bg-secondary border-border"
                 />
               </div>
@@ -90,9 +162,9 @@ const Settings = () => {
                 <Input
                   id="email"
                   type="email"
-                  value={profile.email}
-                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                  className="pl-10 bg-secondary border-border"
+                  value={formProfile.email}
+                  disabled
+                  className="pl-10 bg-muted border-border cursor-not-allowed"
                 />
               </div>
             </div>
@@ -103,8 +175,9 @@ const Settings = () => {
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="phone"
-                  value={profile.phone}
-                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                  value={formProfile.phone}
+                  onChange={(e) => setFormProfile({ ...formProfile, phone: e.target.value })}
+                  placeholder="+91 98765 43210"
                   className="pl-10 bg-secondary border-border"
                 />
               </div>
@@ -116,7 +189,7 @@ const Settings = () => {
                 <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="studentId"
-                  value={profile.studentId}
+                  value={formProfile.student_id}
                   disabled
                   className="pl-10 bg-muted border-border cursor-not-allowed"
                 />
@@ -124,12 +197,48 @@ const Settings = () => {
             </div>
           </div>
 
-          <div className="flex justify-between items-center pt-4 border-t border-border">
-            <p className="text-sm text-muted-foreground">
-              Class ID: <span className="font-medium text-foreground">{currentUser.classId}</span>
-            </p>
-            <Button variant="hero" onClick={handleSaveProfile}>
-              <Save className="w-4 h-4 mr-2" />
+          {/* Class Info */}
+          {classInfo && (
+            <div className="bg-secondary/50 rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-4 h-4 text-accent" />
+                <span className="font-medium text-foreground">Class Information</span>
+                {profile?.is_representative && (
+                  <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">
+                    Representative
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Class Name:</span>
+                  <span className="ml-2 text-foreground font-medium">{classInfo.name}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Class ID:</span>
+                  <span className="ml-2 text-foreground font-medium">{classInfo.class_id}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Department:</span>
+                  <span className="ml-2 text-foreground font-medium">{classInfo.department}</span>
+                </div>
+                {classInfo.class_code && (
+                  <div>
+                    <span className="text-muted-foreground">Class Code:</span>
+                    <span className="ml-2 text-success font-mono font-bold">{classInfo.class_code}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end pt-4 border-t border-border">
+            <Button variant="hero" onClick={handleSaveProfile} disabled={saving}>
+              {saving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
               Save Changes
             </Button>
           </div>
