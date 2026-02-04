@@ -12,6 +12,8 @@ interface Profile {
   email: string;
   phone: string | null;
   avatar_url: string | null;
+  class_id: string | null;
+  is_representative: boolean | null;
 }
 
 interface AuthContextType {
