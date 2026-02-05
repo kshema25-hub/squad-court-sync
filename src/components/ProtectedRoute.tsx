@@ -24,7 +24,11 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   }
 
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // Redirect to admin login for admin routes
+    if (location.pathname.startsWith('/admin')) {
+      return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    }
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   if (requiredRoles && role && !requiredRoles.includes(role)) {
