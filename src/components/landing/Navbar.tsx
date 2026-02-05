@@ -89,7 +89,10 @@ export const Navbar = () => {
                 <Link to="/login">
                   <Button variant="ghost">Sign In</Button>
                 </Link>
-                <Link to="/login">
+                <Link to="/admin/login">
+                  <Button variant="outline" size="sm">Admin</Button>
+                </Link>
+                <Link to="/auth">
                   <Button variant="hero">Get Started</Button>
                 </Link>
               </>
@@ -164,12 +167,17 @@ export const Navbar = () => {
                   </>
                 ) : (
                   <>
-                    <Link to="/login" onClick={() => setIsOpen(false)}>
+                    <Link to="/auth" onClick={() => setIsOpen(false)}>
                       <Button variant="outline" className="w-full">
                         Sign In
                       </Button>
                     </Link>
-                    <Link to="/login" onClick={() => setIsOpen(false)}>
+                    <Link to="/admin/login" onClick={() => setIsOpen(false)}>
+                      <Button variant="secondary" className="w-full">
+                        Admin Login
+                      </Button>
+                    </Link>
+                    <Link to="/auth" onClick={() => setIsOpen(false)}>
                       <Button variant="hero" className="w-full">
                         Get Started
                       </Button>

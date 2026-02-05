@@ -15,6 +15,7 @@ import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import TestSetup from "./pages/TestSetup";
+ import AdminAuth from "./pages/AdminAuth";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminApprovals from "./pages/admin/AdminApprovals";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/login" element={<Auth />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/test-setup" element={<TestSetup />} />
+             <Route path="/admin/login" element={<AdminAuth />} />
             
             {/* Protected Student Routes */}
             <Route path="/dashboard" element={
