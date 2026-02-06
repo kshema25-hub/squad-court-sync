@@ -22,10 +22,12 @@ import {
   Users,
   Filter,
   Loader2,
-  Ticket
+  Ticket,
+  Eye
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
+import { BookingPassModal } from '@/components/booking/BookingPassModal';
 
 const AdminApprovals = () => {
   // Subscribe to real-time booking updates
@@ -221,6 +223,8 @@ const BookingApprovalCard = ({
   isApproving,
   isRejecting 
 }: BookingApprovalCardProps) => {
+  const [showPassModal, setShowPassModal] = useState(false);
+
   const statusColors = {
     pending: 'bg-warning/20 text-warning border-warning/30',
     approved: 'bg-success/20 text-success border-success/30',
@@ -237,105 +241,149 @@ const BookingApprovalCard = ({
   const endTime = format(new Date(booking.end_time), 'h:mm a');
   const requestedAt = format(new Date(booking.created_at), 'MMM dd, h:mm a');
 
+  // Format booking for pass modal
+  const bookingForPass = {
+    id: booking.id,
+    start_time: booking.start_time,
+    end_time: booking.end_time,
+    status: booking.status,
+    resource_type: booking.resource_type,
+    quantity: booking.quantity,
+    notes: booking.notes,
+    court: booking.court ? {
+      name: booking.court.name,
+      location: booking.court.location,
+      sport: booking.court.sport,
+    } : null,
+    equipment: booking.equipment ? {
+      name: booking.equipment.name,
+      category: booking.equipment.category,
+    } : null,
+    class: booking.class ? {
+      name: booking.class.name,
+      class_id: booking.class.class_id,
+      department: booking.class.department,
+    } : null,
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="bg-gradient-card rounded-xl p-5 border border-border"
-    >
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${booking.resource_type === 'court' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent'}`}>
-            {booking.resource_type === 'court' ? <Calendar className="w-6 h-6" /> : <Package className="w-6 h-6" />}
-          </div>
-          
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-display font-semibold text-foreground">
-                {resourceName}
-              </h4>
-              <Badge className={statusColors[booking.status as keyof typeof statusColors] || statusColors.pending}>
-                {booking.status}
-              </Badge>
-              {booking.quantity && booking.quantity > 1 && (
-                <Badge variant="secondary" className="text-xs">
-                  ×{booking.quantity}
-                </Badge>
-              )}
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.05 }}
+        className="bg-gradient-card rounded-xl p-5 border border-border"
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${booking.resource_type === 'court' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent'}`}>
+              {booking.resource_type === 'court' ? <Calendar className="w-6 h-6" /> : <Package className="w-6 h-6" />}
             </div>
             
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Users className="w-3.5 h-3.5" />
-                {userName}
-              </div>
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Badge variant="secondary" className="text-xs">
-                  {userClass}
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h4 className="font-display font-semibold text-foreground">
+                  {resourceName}
+                </h4>
+                <Badge className={statusColors[booking.status as keyof typeof statusColors] || statusColors.pending}>
+                  {booking.status}
                 </Badge>
+                {booking.quantity && booking.quantity > 1 && (
+                  <Badge variant="secondary" className="text-xs">
+                    ×{booking.quantity}
+                  </Badge>
+                )}
               </div>
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Calendar className="w-3.5 h-3.5" />
-                {bookingDate}
+              
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Users className="w-3.5 h-3.5" />
+                  {userName}
+                </div>
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Badge variant="secondary" className="text-xs">
+                    {userClass}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Calendar className="w-3.5 h-3.5" />
+                  {bookingDate}
+                </div>
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Clock className="w-3.5 h-3.5" />
+                  {startTime} - {endTime}
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Clock className="w-3.5 h-3.5" />
-                {startTime} - {endTime}
-              </div>
-            </div>
 
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant="secondary" className="text-xs">
-                {booking.booking_type === 'class' ? 'Class Booking' : 'Individual'}
-              </Badge>
-              <span className="text-xs text-muted-foreground">
-                Requested: {requestedAt}
-              </span>
+              <div className="flex items-center gap-2 mt-2">
+                <Badge variant="secondary" className="text-xs">
+                  {booking.booking_type === 'class' ? 'Class Booking' : 'Individual'}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  Requested: {requestedAt}
+                </span>
+              </div>
             </div>
           </div>
+
+          {booking.status === 'pending' && (
+            <div className="flex gap-2 shrink-0">
+              <Button 
+                variant="outline" 
+                className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={() => onReject(booking.id)}
+                disabled={isRejecting}
+              >
+                {isRejecting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <XCircle className="w-4 h-4 mr-2" />
+                )}
+                Reject
+              </Button>
+              <Button 
+                variant="hero"
+                onClick={() => onApprove(booking.id)}
+                disabled={isApproving}
+              >
+                {isApproving ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                )}
+                Approve
+              </Button>
+            </div>
+          )}
+
+          {booking.status === 'approved' && (
+            <div className="flex items-center gap-2 shrink-0">
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPassModal(true)}
+                className="gap-1.5"
+              >
+                <Eye className="w-4 h-4" />
+                View Pass
+              </Button>
+              <div className="flex items-center gap-1.5 text-sm text-success bg-success/10 px-3 py-1.5 rounded-full">
+                <Ticket className="w-4 h-4" />
+                <span>Pass Available</span>
+              </div>
+            </div>
+          )}
         </div>
+      </motion.div>
 
-        {booking.status === 'pending' && (
-          <div className="flex gap-2 shrink-0">
-            <Button 
-              variant="outline" 
-              className="text-destructive border-destructive/30 hover:bg-destructive/10"
-              onClick={() => onReject(booking.id)}
-              disabled={isRejecting}
-            >
-              {isRejecting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <XCircle className="w-4 h-4 mr-2" />
-              )}
-              Reject
-            </Button>
-            <Button 
-              variant="hero"
-              onClick={() => onApprove(booking.id)}
-              disabled={isApproving}
-            >
-              {isApproving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <CheckCircle className="w-4 h-4 mr-2" />
-              )}
-              Approve
-            </Button>
-          </div>
-        )}
-
-        {booking.status === 'approved' && (
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-1.5 text-sm text-success bg-success/10 px-3 py-1.5 rounded-full">
-              <Ticket className="w-4 h-4" />
-              <span>Pass Available</span>
-            </div>
-          </div>
-        )}
-      </div>
-    </motion.div>
+      <BookingPassModal
+        open={showPassModal}
+        onOpenChange={setShowPassModal}
+        booking={bookingForPass}
+        userName={userName}
+        approvedAt={booking.updated_at}
+      />
+    </>
   );
 };
 
