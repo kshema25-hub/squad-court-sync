@@ -12,6 +12,7 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   const { user, role, loading } = useAuth();
   const location = useLocation();
 
+  // Show loading while auth or role is being fetched
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -29,6 +30,18 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
       return <Navigate to="/admin/login" state={{ from: location }} replace />;
     }
     return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  // Wait for role to be fetched before checking permissions
+  if (requiredRoles && !role) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Verifying permissions...</p>
+        </div>
+      </div>
+    );
   }
 
   if (requiredRoles && role && !requiredRoles.includes(role)) {
