@@ -21,6 +21,8 @@ import AdminApprovals from "./pages/admin/AdminApprovals";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminInventory from "./pages/admin/AdminInventory";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminCourts from "./pages/admin/AdminCourts";
+import AdminSettings from "./pages/admin/AdminSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -100,6 +102,16 @@ const App = () => (
             <Route path="/admin/analytics" element={
               <ProtectedRoute requiredRoles={['admin', 'faculty']}>
                 <AdminAnalytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/courts" element={
+              <ProtectedRoute requiredRoles={['admin', 'faculty']}>
+                <AdminCourts />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/settings" element={
+              <ProtectedRoute requiredRoles={['admin']}>
+                <AdminSettings />
               </ProtectedRoute>
             } />
             
