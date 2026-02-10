@@ -414,6 +414,66 @@ export type Database = {
           },
         ]
       }
+      time_blocks: {
+        Row: {
+          category: string | null
+          court_id: string | null
+          created_at: string
+          created_by: string
+          end_time: string
+          equipment_id: string | null
+          id: string
+          is_recurring: boolean
+          reason: string
+          resource_type: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          court_id?: string | null
+          created_at?: string
+          created_by: string
+          end_time: string
+          equipment_id?: string | null
+          id?: string
+          is_recurring?: boolean
+          reason?: string
+          resource_type: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          court_id?: string | null
+          created_at?: string
+          created_by?: string
+          end_time?: string
+          equipment_id?: string | null
+          id?: string
+          is_recurring?: boolean
+          reason?: string
+          resource_type?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_blocks_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_blocks_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
