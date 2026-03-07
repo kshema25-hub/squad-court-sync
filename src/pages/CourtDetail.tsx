@@ -38,7 +38,6 @@ const CourtDetail = () => {
   useRealtimeCourtBookings(id);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [bookingType, setBookingType] = useState<'individual' | 'class'>('individual');
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
 
   // Clear selected slot when date changes
