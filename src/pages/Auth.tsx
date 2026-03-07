@@ -11,13 +11,34 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 
+const DEPARTMENTS = [
+  'Department of Computer Science',
+  'Department of Commerce',
+  'Department of Journalism',
+  'Department of Business Administration',
+  'Department of Economics',
+  'Department of History',
+  'Department of Political Science',
+];
+
+const CLASS_NAMES = [
+  'BCA',
+  'BBA',
+  'BSc',
+  'BVoc',
+  'BCom',
+  'BA',
+  'BA in Economics',
+  'BA in Political Science',
+  'BA in History',
+];
+
 const signUpSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  className: z.string().min(2, 'Class name is required'),
-  classIdCode: z.string().min(2, 'Class ID is required'),
-  department: z.string().min(2, 'Department is required'),
+  className: z.string().min(1, 'Class name is required'),
+  department: z.string().min(1, 'Department is required'),
   year: z.number().min(1).max(6),
   studentCount: z.number().min(1),
 });
