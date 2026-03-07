@@ -54,17 +54,16 @@ const EquipmentPage = () => {
   };
 
   const submitRequest = async () => {
-    if (!selectedEquipment || !user) return;
+    if (!selectedEquipment || !user || !userClass) return;
 
-    // Default to 7-day equipment loan period
     const startTime = new Date();
     const endTime = addDays(startTime, 7);
 
     await createBooking.mutateAsync({
       equipmentId: selectedEquipment.id,
       userId: user.id,
-      classId: bookingType === 'class' && userClass ? userClass.id : undefined,
-      bookingType,
+      classId: userClass.id,
+      bookingType: 'class',
       quantity,
       startTime,
       endTime,
