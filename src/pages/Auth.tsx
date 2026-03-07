@@ -83,7 +83,6 @@ const Auth = () => {
           password, 
           name, 
           className, 
-          classIdCode, 
           department, 
           year, 
           studentCount 
