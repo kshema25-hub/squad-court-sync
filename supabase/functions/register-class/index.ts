@@ -14,7 +14,6 @@ interface RegisterClassRequest {
   password: string;
   full_name: string;
   class_name: string;
-  class_id_code: string; // like "4AI23CD"
   department: string;
   year: number;
   student_count: number;
