@@ -151,7 +151,6 @@ const Auth = () => {
             password,
             full_name: name,
             class_name: className,
-            class_id_code: classIdCode,
             department,
             year,
             student_count: studentCount,
