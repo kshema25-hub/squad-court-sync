@@ -56,7 +56,6 @@ const Auth = () => {
   const [name, setName] = useState('');
   const [classCode, setClassCode] = useState('');
   const [className, setClassName] = useState('');
-  const [classIdCode, setClassIdCode] = useState('');
   const [department, setDepartment] = useState('');
   const [year, setYear] = useState<number>(1);
   const [studentCount, setStudentCount] = useState<number>(30);
