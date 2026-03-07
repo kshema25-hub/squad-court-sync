@@ -94,15 +94,20 @@ const CourtDetail = () => {
       return;
     }
 
+    if (!userClass) {
+      toast.error('You must be assigned to a class to book');
+      return;
+    }
+
     // Parse the time slot and create start/end times
     const startTime = parse(selectedSlot, 'h:mm a', selectedDate);
-    const endTime = addHours(startTime, 1); // Assuming 1-hour slots
+    const endTime = addHours(startTime, 1);
 
     await createBooking.mutateAsync({
       courtId: court.id,
       userId: user.id,
-      classId: bookingType === 'class' && userClass ? userClass.id : undefined,
-      bookingType,
+      classId: userClass.id,
+      bookingType: 'class',
       startTime,
       endTime,
     });
