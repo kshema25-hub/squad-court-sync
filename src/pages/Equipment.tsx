@@ -32,7 +32,6 @@ const EquipmentPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
-  const [bookingType, setBookingType] = useState<'individual' | 'class'>('individual');
   const [quantity, setQuantity] = useState(1);
 
   const categories = [...new Set(equipment.map((e) => e.category))];
