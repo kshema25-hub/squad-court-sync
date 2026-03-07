@@ -182,27 +182,12 @@ const EquipmentPage = () => {
           </DialogHeader>
 
           <div className="space-y-6 pt-4">
-            {/* Booking Type */}
+            {/* Class Info */}
             <div className="space-y-3">
-              <Label className="text-foreground">Booking Type</Label>
-              <RadioGroup
-                value={bookingType}
-                onValueChange={(v) => setBookingType(v as 'individual' | 'class')}
-                className="flex gap-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="individual" id="individual" />
-                  <Label htmlFor="individual" className="cursor-pointer">
-                    Individual
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="class" id="class" disabled={!userClass} />
-                  <Label htmlFor="class" className="cursor-pointer">
-                    {userClass ? `Class (${userClass.name})` : 'No class assigned'}
-                  </Label>
-                </div>
-              </RadioGroup>
+              <Label className="text-foreground">Requesting for</Label>
+              <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm font-medium text-foreground">
+                {userClass?.name} — Class booking
+              </div>
             </div>
 
             {/* Quantity */}
