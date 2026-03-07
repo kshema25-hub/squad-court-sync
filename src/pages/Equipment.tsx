@@ -45,9 +45,12 @@ const EquipmentPage = () => {
   });
 
   const handleRequest = (item: Equipment) => {
+    if (!userClass) {
+      toast.error('You must be assigned to a class to request equipment');
+      return;
+    }
     setSelectedEquipment(item);
     setQuantity(1);
-    setBookingType('individual');
   };
 
   const submitRequest = async () => {
