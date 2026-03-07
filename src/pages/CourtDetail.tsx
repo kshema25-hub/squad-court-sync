@@ -264,35 +264,24 @@ const CourtDetail = () => {
             </div>
           </div>
 
-          {/* Booking Type */}
+          {/* Class Info */}
           <div className="bg-gradient-card rounded-xl p-6 border border-border">
             <h3 className="font-display text-lg font-semibold text-foreground mb-4">
-              Booking Type
+              Booking For
             </h3>
-
-            <RadioGroup
-              value={bookingType}
-              onValueChange={(v) => setBookingType(v as 'individual' | 'class')}
-              className="grid md:grid-cols-2 gap-4"
-            >
-              <div className={`relative flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${bookingType === 'individual' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}>
-                <RadioGroupItem value="individual" id="individual" className="mr-3" />
-                <Label htmlFor="individual" className="cursor-pointer flex-1">
-                  <div className="font-semibold text-foreground">Individual Booking</div>
-                  <div className="text-sm text-muted-foreground">Book for yourself only</div>
-                </Label>
+            {userClass ? (
+              <div className="flex items-center gap-3 p-4 rounded-xl border-2 border-primary bg-primary/5">
+                <GraduationCap className="w-5 h-5 text-primary" />
+                <div>
+                  <div className="font-semibold text-foreground">{userClass.name}</div>
+                  <div className="text-sm text-muted-foreground">Class booking by representative</div>
+                </div>
               </div>
-              
-              <div className={`relative flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${bookingType === 'class' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}>
-                <RadioGroupItem value="class" id="class" className="mr-3" disabled={!userClass} />
-                <Label htmlFor="class" className="cursor-pointer flex-1">
-                  <div className="font-semibold text-foreground">Class Booking</div>
-                  <div className="text-sm text-muted-foreground">
-                    {userClass ? `Book for ${userClass.name}` : 'No class assigned'}
-                  </div>
-                </Label>
+            ) : (
+              <div className="p-4 rounded-xl border-2 border-destructive/30 bg-destructive/5 text-sm text-destructive">
+                You must be assigned to a class to make bookings.
               </div>
-            </RadioGroup>
+            )}
           </div>
 
           {/* Summary & Submit */}
