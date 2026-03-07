@@ -261,57 +261,34 @@ const Auth = () => {
                   {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="className">Class Name</Label>
-                    <div className="relative">
-                      <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        id="className"
-                        type="text"
-                        placeholder="CSE-A"
-                        value={className}
-                        onChange={(e) => setClassName(e.target.value)}
-                        className={`pl-10 bg-secondary border-border ${errors.className ? 'border-destructive' : ''}`}
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    {errors.className && <p className="text-sm text-destructive">{errors.className}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="classIdCode">Class ID</Label>
-                    <div className="relative">
-                      <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        id="classIdCode"
-                        type="text"
-                        placeholder="4AI23CD"
-                        value={classIdCode}
-                        onChange={(e) => setClassIdCode(e.target.value.toUpperCase())}
-                        className={`pl-10 bg-secondary border-border ${errors.classIdCode ? 'border-destructive' : ''}`}
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    {errors.classIdCode && <p className="text-sm text-destructive">{errors.classIdCode}</p>}
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department</Label>
+                  <Select value={department} onValueChange={setDepartment} disabled={isSubmitting}>
+                    <SelectTrigger className={`bg-secondary border-border ${errors.department ? 'border-destructive' : ''}`}>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEPARTMENTS.map((dept) => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.department && <p className="text-sm text-destructive">{errors.department}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="department">Department</Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="department"
-                      type="text"
-                      placeholder="Computer Science"
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                      className={`pl-10 bg-secondary border-border ${errors.department ? 'border-destructive' : ''}`}
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                  {errors.department && <p className="text-sm text-destructive">{errors.department}</p>}
+                  <Label htmlFor="className">Class Name</Label>
+                  <Select value={className} onValueChange={setClassName} disabled={isSubmitting}>
+                    <SelectTrigger className={`bg-secondary border-border ${errors.className ? 'border-destructive' : ''}`}>
+                      <SelectValue placeholder="Select class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CLASS_NAMES.map((cls) => (
+                        <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.className && <p className="text-sm text-destructive">{errors.className}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
