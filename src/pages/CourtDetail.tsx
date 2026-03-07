@@ -21,7 +21,8 @@ import {
   Check, 
   X,
   CalendarDays,
-  Loader2
+  Loader2,
+  GraduationCap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, addHours, parse } from 'date-fns';
