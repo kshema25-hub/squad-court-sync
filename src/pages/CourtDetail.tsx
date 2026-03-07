@@ -322,7 +322,7 @@ const CourtDetail = () => {
               size="lg"
               className="w-full"
               onClick={handleBooking}
-              disabled={!selectedSlot || !selectedDate || createBooking.isPending}
+              disabled={!selectedSlot || !selectedDate || !userClass || createBooking.isPending}
             >
               {createBooking.isPending ? (
                 <>
