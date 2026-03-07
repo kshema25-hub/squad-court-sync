@@ -310,9 +310,9 @@ const CourtDetail = () => {
                 <span className="font-medium text-foreground">{selectedSlot || '—'}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Booking Type</span>
+                <span className="text-muted-foreground">Class</span>
                 <span className="font-medium text-foreground">
-                  {bookingType === 'class' && userClass ? userClass.name : 'Individual'}
+                  {userClass ? userClass.name : '—'}
                 </span>
               </div>
             </div>
