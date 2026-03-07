@@ -75,7 +75,7 @@ const EquipmentPage = () => {
   return (
     <DashboardLayout
       title="Sports Equipment"
-      subtitle="Request equipment for individual or class use"
+      subtitle="Request equipment for your class"
     >
       {/* Filters */}
       <motion.div
