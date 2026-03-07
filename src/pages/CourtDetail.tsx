@@ -11,7 +11,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { 
   ArrowLeft, 
@@ -21,7 +20,8 @@ import {
   Check, 
   X,
   CalendarDays,
-  Loader2
+  Loader2,
+  GraduationCap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, addHours, parse } from 'date-fns';
@@ -38,7 +38,6 @@ const CourtDetail = () => {
   useRealtimeCourtBookings(id);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [bookingType, setBookingType] = useState<'individual' | 'class'>('individual');
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
 
   // Clear selected slot when date changes
@@ -95,15 +94,20 @@ const CourtDetail = () => {
       return;
     }
 
+    if (!userClass) {
+      toast.error('You must be assigned to a class to book');
+      return;
+    }
+
     // Parse the time slot and create start/end times
     const startTime = parse(selectedSlot, 'h:mm a', selectedDate);
-    const endTime = addHours(startTime, 1); // Assuming 1-hour slots
+    const endTime = addHours(startTime, 1);
 
     await createBooking.mutateAsync({
       courtId: court.id,
       userId: user.id,
-      classId: bookingType === 'class' && userClass ? userClass.id : undefined,
-      bookingType,
+      classId: userClass.id,
+      bookingType: 'class',
       startTime,
       endTime,
     });
@@ -260,35 +264,24 @@ const CourtDetail = () => {
             </div>
           </div>
 
-          {/* Booking Type */}
+          {/* Class Info */}
           <div className="bg-gradient-card rounded-xl p-6 border border-border">
             <h3 className="font-display text-lg font-semibold text-foreground mb-4">
-              Booking Type
+              Booking For
             </h3>
-
-            <RadioGroup
-              value={bookingType}
-              onValueChange={(v) => setBookingType(v as 'individual' | 'class')}
-              className="grid md:grid-cols-2 gap-4"
-            >
-              <div className={`relative flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${bookingType === 'individual' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}>
-                <RadioGroupItem value="individual" id="individual" className="mr-3" />
-                <Label htmlFor="individual" className="cursor-pointer flex-1">
-                  <div className="font-semibold text-foreground">Individual Booking</div>
-                  <div className="text-sm text-muted-foreground">Book for yourself only</div>
-                </Label>
+            {userClass ? (
+              <div className="flex items-center gap-3 p-4 rounded-xl border-2 border-primary bg-primary/5">
+                <GraduationCap className="w-5 h-5 text-primary" />
+                <div>
+                  <div className="font-semibold text-foreground">{userClass.name}</div>
+                  <div className="text-sm text-muted-foreground">Class booking by representative</div>
+                </div>
               </div>
-              
-              <div className={`relative flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${bookingType === 'class' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}>
-                <RadioGroupItem value="class" id="class" className="mr-3" disabled={!userClass} />
-                <Label htmlFor="class" className="cursor-pointer flex-1">
-                  <div className="font-semibold text-foreground">Class Booking</div>
-                  <div className="text-sm text-muted-foreground">
-                    {userClass ? `Book for ${userClass.name}` : 'No class assigned'}
-                  </div>
-                </Label>
+            ) : (
+              <div className="p-4 rounded-xl border-2 border-destructive/30 bg-destructive/5 text-sm text-destructive">
+                You must be assigned to a class to make bookings.
               </div>
-            </RadioGroup>
+            )}
           </div>
 
           {/* Summary & Submit */}
@@ -317,9 +310,9 @@ const CourtDetail = () => {
                 <span className="font-medium text-foreground">{selectedSlot || '—'}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Booking Type</span>
+                <span className="text-muted-foreground">Class</span>
                 <span className="font-medium text-foreground">
-                  {bookingType === 'class' && userClass ? userClass.name : 'Individual'}
+                  {userClass ? userClass.name : '—'}
                 </span>
               </div>
             </div>
@@ -329,7 +322,7 @@ const CourtDetail = () => {
               size="lg"
               className="w-full"
               onClick={handleBooking}
-              disabled={!selectedSlot || !selectedDate || createBooking.isPending}
+              disabled={!selectedSlot || !selectedDate || !userClass || createBooking.isPending}
             >
               {createBooking.isPending ? (
                 <>

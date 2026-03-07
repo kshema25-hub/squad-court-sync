@@ -5,19 +5,40 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dumbbell, ArrowLeft, Mail, Lock, User, GraduationCap, Loader2, KeyRound, Building, Users, Hash } from 'lucide-react';
+import { Dumbbell, ArrowLeft, Mail, Lock, User, GraduationCap, Loader2, KeyRound, Building, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 
+const DEPARTMENTS = [
+  'Department of Computer Science',
+  'Department of Commerce',
+  'Department of Journalism',
+  'Department of Business Administration',
+  'Department of Economics',
+  'Department of History',
+  'Department of Political Science',
+];
+
+const CLASS_NAMES = [
+  'BCA',
+  'BBA',
+  'BSc',
+  'BVoc',
+  'BCom',
+  'BA',
+  'BA in Economics',
+  'BA in Political Science',
+  'BA in History',
+];
+
 const signUpSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  className: z.string().min(2, 'Class name is required'),
-  classIdCode: z.string().min(2, 'Class ID is required'),
-  department: z.string().min(2, 'Department is required'),
+  className: z.string().min(1, 'Class name is required'),
+  department: z.string().min(1, 'Department is required'),
   year: z.number().min(1).max(6),
   studentCount: z.number().min(1),
 });
@@ -35,7 +56,6 @@ const Auth = () => {
   const [name, setName] = useState('');
   const [classCode, setClassCode] = useState('');
   const [className, setClassName] = useState('');
-  const [classIdCode, setClassIdCode] = useState('');
   const [department, setDepartment] = useState('');
   const [year, setYear] = useState<number>(1);
   const [studentCount, setStudentCount] = useState<number>(30);
@@ -63,7 +83,6 @@ const Auth = () => {
           password, 
           name, 
           className, 
-          classIdCode, 
           department, 
           year, 
           studentCount 
@@ -132,7 +151,6 @@ const Auth = () => {
             password,
             full_name: name,
             class_name: className,
-            class_id_code: classIdCode,
             department,
             year,
             student_count: studentCount,
@@ -243,57 +261,34 @@ const Auth = () => {
                   {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="className">Class Name</Label>
-                    <div className="relative">
-                      <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        id="className"
-                        type="text"
-                        placeholder="CSE-A"
-                        value={className}
-                        onChange={(e) => setClassName(e.target.value)}
-                        className={`pl-10 bg-secondary border-border ${errors.className ? 'border-destructive' : ''}`}
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    {errors.className && <p className="text-sm text-destructive">{errors.className}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="classIdCode">Class ID</Label>
-                    <div className="relative">
-                      <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        id="classIdCode"
-                        type="text"
-                        placeholder="4AI23CD"
-                        value={classIdCode}
-                        onChange={(e) => setClassIdCode(e.target.value.toUpperCase())}
-                        className={`pl-10 bg-secondary border-border ${errors.classIdCode ? 'border-destructive' : ''}`}
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    {errors.classIdCode && <p className="text-sm text-destructive">{errors.classIdCode}</p>}
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department</Label>
+                  <Select value={department} onValueChange={setDepartment} disabled={isSubmitting}>
+                    <SelectTrigger className={`bg-secondary border-border ${errors.department ? 'border-destructive' : ''}`}>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEPARTMENTS.map((dept) => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.department && <p className="text-sm text-destructive">{errors.department}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="department">Department</Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="department"
-                      type="text"
-                      placeholder="Computer Science"
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                      className={`pl-10 bg-secondary border-border ${errors.department ? 'border-destructive' : ''}`}
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                  {errors.department && <p className="text-sm text-destructive">{errors.department}</p>}
+                  <Label htmlFor="className">Class Name</Label>
+                  <Select value={className} onValueChange={setClassName} disabled={isSubmitting}>
+                    <SelectTrigger className={`bg-secondary border-border ${errors.className ? 'border-destructive' : ''}`}>
+                      <SelectValue placeholder="Select class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CLASS_NAMES.map((cls) => (
+                        <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.className && <p className="text-sm text-destructive">{errors.className}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

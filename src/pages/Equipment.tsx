@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { toast } from 'sonner';
 import { Tables } from '@/integrations/supabase/types';
 import { addDays } from 'date-fns';
 
@@ -32,7 +32,6 @@ const EquipmentPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
-  const [bookingType, setBookingType] = useState<'individual' | 'class'>('individual');
   const [quantity, setQuantity] = useState(1);
 
   const categories = [...new Set(equipment.map((e) => e.category))];
@@ -46,23 +45,25 @@ const EquipmentPage = () => {
   });
 
   const handleRequest = (item: Equipment) => {
+    if (!userClass) {
+      toast.error('You must be assigned to a class to request equipment');
+      return;
+    }
     setSelectedEquipment(item);
     setQuantity(1);
-    setBookingType('individual');
   };
 
   const submitRequest = async () => {
-    if (!selectedEquipment || !user) return;
+    if (!selectedEquipment || !user || !userClass) return;
 
-    // Default to 7-day equipment loan period
     const startTime = new Date();
     const endTime = addDays(startTime, 7);
 
     await createBooking.mutateAsync({
       equipmentId: selectedEquipment.id,
       userId: user.id,
-      classId: bookingType === 'class' && userClass ? userClass.id : undefined,
-      bookingType,
+      classId: userClass.id,
+      bookingType: 'class',
       quantity,
       startTime,
       endTime,
@@ -74,7 +75,7 @@ const EquipmentPage = () => {
   return (
     <DashboardLayout
       title="Sports Equipment"
-      subtitle="Request equipment for individual or class use"
+      subtitle="Request equipment for your class"
     >
       {/* Filters */}
       <motion.div
@@ -181,27 +182,12 @@ const EquipmentPage = () => {
           </DialogHeader>
 
           <div className="space-y-6 pt-4">
-            {/* Booking Type */}
+            {/* Class Info */}
             <div className="space-y-3">
-              <Label className="text-foreground">Booking Type</Label>
-              <RadioGroup
-                value={bookingType}
-                onValueChange={(v) => setBookingType(v as 'individual' | 'class')}
-                className="flex gap-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="individual" id="individual" />
-                  <Label htmlFor="individual" className="cursor-pointer">
-                    Individual
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="class" id="class" disabled={!userClass} />
-                  <Label htmlFor="class" className="cursor-pointer">
-                    {userClass ? `Class (${userClass.name})` : 'No class assigned'}
-                  </Label>
-                </div>
-              </RadioGroup>
+              <Label className="text-foreground">Requesting for</Label>
+              <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm font-medium text-foreground">
+                {userClass?.name} — Class booking
+              </div>
             </div>
 
             {/* Quantity */}
