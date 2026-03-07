@@ -30,11 +30,13 @@ const handler = async (req: Request): Promise<Response> => {
       password, 
       full_name, 
       class_name, 
-      class_id_code,
       department, 
       year, 
       student_count 
     }: RegisterClassRequest = await req.json();
+
+    // Auto-generate class_id from class_name + year
+    const class_id_code = `${class_name.replace(/\s+/g, '').toUpperCase()}-Y${year}-${Date.now().toString(36).slice(-4).toUpperCase()}`;
 
     console.log("Registering class:", class_name, "for RP:", email);
 
