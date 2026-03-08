@@ -23,6 +23,7 @@ import AdminInventory from "./pages/admin/AdminInventory";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminCourts from "./pages/admin/AdminCourts";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminScanner from "./pages/admin/AdminScanner";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
