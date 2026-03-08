@@ -28,18 +28,17 @@ export function useCreateCourtBooking() {
 
   return useMutation({
     mutationFn: async (params: CreateCourtBookingParams) => {
-      // Check for conflicting bookings (server-side double-booking prevention)
-      const { data: conflicts } = await supabase
-        .from('bookings')
-        .select('id')
-        .eq('court_id', params.courtId)
-        .eq('resource_type', 'court')
-        .in('status', ['pending', 'approved'])
-        .lt('start_time', params.endTime.toISOString())
-        .gt('end_time', params.startTime.toISOString());
+      // Check for conflicting bookings using SECURITY DEFINER function (bypasses RLS)
+      const { data: hasConflict, error: conflictError } = await supabase
+        .rpc('check_court_booking_conflict', {
+          _court_id: params.courtId,
+          _start_time: params.startTime.toISOString(),
+          _end_time: params.endTime.toISOString(),
+        });
 
-      if (conflicts && conflicts.length > 0) {
-        throw new Error('This slot is already booked. Please select a different time slot.');
+      if (conflictError) throw conflictError;
+      if (hasConflict) {
+        throw new Error('This slot is already booked by another class. Please select a different time slot.');
       }
 
       const { data, error } = await supabase
