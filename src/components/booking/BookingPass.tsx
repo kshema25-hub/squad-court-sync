@@ -130,13 +130,24 @@ export const BookingPass = forwardRef<HTMLDivElement, BookingPassProps>(
             </div>
           </div>
 
-          {/* QR Code Placeholder */}
+          {/* QR Code */}
           <div className="flex justify-center py-2">
             <div className="text-center">
-              <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200 mx-auto">
-                <QrCode className="w-16 h-16 text-gray-400" />
+              <div className="w-32 h-32 bg-white rounded-lg flex items-center justify-center border-2 border-gray-200 mx-auto p-2">
+                <QRCodeSVG
+                  value={JSON.stringify({
+                    type: 'squadsync_booking',
+                    id: booking.id,
+                    code: bookingCode,
+                    resource: booking.resource_type,
+                    status: booking.status,
+                  })}
+                  size={112}
+                  level="M"
+                  includeMargin={false}
+                />
               </div>
-              <p className="text-xs text-gray-400 mt-2">Scan to verify</p>
+              <p className="text-xs text-gray-400 mt-2">Scan to verify booking</p>
             </div>
           </div>
         </div>

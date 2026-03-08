@@ -24,6 +24,7 @@ import { useAuth } from '@/hooks/useAuth';
 const menuItems = [
   { icon: LayoutDashboard, label: 'Overview', href: '/admin' },
   { icon: CheckSquare, label: 'Approvals', href: '/admin/approvals' },
+  { icon: ScanLine, label: 'QR Scanner', href: '/admin/scanner' },
   { icon: Users, label: 'Users', href: '/admin/users' },
   { icon: Calendar, label: 'Courts', href: '/admin/courts' },
   { icon: Package, label: 'Inventory', href: '/admin/inventory' },
