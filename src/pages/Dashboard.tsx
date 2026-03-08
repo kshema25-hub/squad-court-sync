@@ -206,9 +206,14 @@ const Dashboard = () => {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                You're not assigned to a class yet. Contact admin to join a class.
-              </p>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  You're not assigned to a class yet.
+                </p>
+                <p className="text-xs text-warning">
+                  ⚠ You need to be assigned to a class by an admin before you can book courts or equipment.
+                </p>
+              </div>
             )}
           </div>
         </motion.div>
