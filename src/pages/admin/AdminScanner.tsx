@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +16,9 @@ import {
   MapPin,
   Users,
   Loader2,
-  RotateCcw
+  RotateCcw,
+  History,
+  Trash2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -27,22 +29,125 @@ type VerificationResult = {
   message: string;
 };
 
+type ScanHistoryEntry = {
+  id: string;
+  scannedAt: Date;
+  result: VerificationResult;
+  bookingCode: string;
+  resourceName: string;
+  userName: string;
+};
+
+const statusConfig = {
+  valid: { icon: CheckCircle, color: 'text-success', bg: 'bg-success/10 border-success/30', label: 'Valid' },
+  invalid: { icon: XCircle, color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/30', label: 'Invalid' },
+  expired: { icon: AlertTriangle, color: 'text-warning', bg: 'bg-warning/10 border-warning/30', label: 'Expired' },
+  not_approved: { icon: AlertTriangle, color: 'text-warning', bg: 'bg-warning/10 border-warning/30', label: 'Not Approved' },
+};
+
+const ScanHistoryLog = ({ 
+  history, 
+  onClear 
+}: { 
+  history: ScanHistoryEntry[]; 
+  onClear: () => void;
+}) => {
+  if (history.length === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gradient-card rounded-xl border border-border overflow-hidden"
+    >
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <History className="w-5 h-5 text-primary" />
+          <h3 className="font-display font-semibold text-foreground">Scan History</h3>
+          <Badge variant="secondary" className="text-xs">{history.length}</Badge>
+        </div>
+        <Button variant="ghost" size="sm" onClick={onClear} className="text-muted-foreground hover:text-destructive">
+          <Trash2 className="w-4 h-4 mr-1" />
+          Clear
+        </Button>
+      </div>
+
+      <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
+        <AnimatePresence>
+          {history.map((entry, index) => {
+            const config = statusConfig[entry.result.status];
+            const Icon = config.icon;
+            return (
+              <motion.div
+                key={entry.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ delay: index * 0.03 }}
+                className="flex items-center gap-3 p-3 hover:bg-secondary/30 transition-colors"
+              >
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${config.bg}`}>
+                  <Icon className={`w-4 h-4 ${config.color}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm text-foreground truncate">
+                      {entry.resourceName}
+                    </p>
+                    <Badge className={`text-[10px] px-1.5 py-0 ${config.bg}`}>
+                      {config.label}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{entry.userName}</span>
+                    <span>·</span>
+                    <span className="font-mono">{entry.bookingCode}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground shrink-0">
+                  {format(entry.scannedAt, 'h:mm:ss a')}
+                </p>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+};
+
 const AdminScanner = () => {
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
   const scannerRef = useRef<any>(null);
   const scannerContainerId = 'qr-scanner-container';
+
+  const addToHistory = useCallback((verResult: VerificationResult) => {
+    const entry: ScanHistoryEntry = {
+      id: crypto.randomUUID(),
+      scannedAt: new Date(),
+      result: verResult,
+      bookingCode: verResult.booking?.id?.slice(0, 8).toUpperCase() || 'N/A',
+      resourceName: verResult.booking?.court?.name || verResult.booking?.equipment?.name || 'Unknown',
+      userName: verResult.booking?.profile?.full_name || 'Unknown',
+    };
+    setScanHistory(prev => [entry, ...prev].slice(0, 50));
+  }, []);
 
   const verifyBooking = useCallback(async (data: string) => {
     setLoading(true);
     setError(null);
+    let verResult: VerificationResult;
     try {
       const parsed = JSON.parse(data);
       
       if (parsed.type !== 'squadsync_booking' || !parsed.id) {
-        setResult({ status: 'invalid', message: 'This QR code is not a valid SquadSync booking pass.' });
+        verResult = { status: 'invalid', message: 'This QR code is not a valid SquadSync booking pass.' };
+        setResult(verResult);
+        addToHistory(verResult);
         return;
       }
 
@@ -58,11 +163,12 @@ const AdminScanner = () => {
         .single();
 
       if (fetchError || !booking) {
-        setResult({ status: 'invalid', message: 'Booking not found in the system.' });
+        verResult = { status: 'invalid', message: 'Booking not found in the system.' };
+        setResult(verResult);
+        addToHistory(verResult);
         return;
       }
 
-      // Fetch profile separately
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
@@ -72,36 +178,44 @@ const AdminScanner = () => {
       const bookingWithProfile = { ...booking, profile };
 
       if (booking.status !== 'approved') {
-        setResult({
+        verResult = {
           status: 'not_approved',
           booking: bookingWithProfile,
           message: `Booking status is "${booking.status}". Only approved bookings are valid.`,
-        });
+        };
+        setResult(verResult);
+        addToHistory(verResult);
         return;
       }
 
       const now = new Date();
       const endTime = new Date(booking.end_time);
       if (endTime < now) {
-        setResult({
+        verResult = {
           status: 'expired',
           booking: bookingWithProfile,
           message: 'This booking has expired. The scheduled time has passed.',
-        });
+        };
+        setResult(verResult);
+        addToHistory(verResult);
         return;
       }
 
-      setResult({
+      verResult = {
         status: 'valid',
         booking: bookingWithProfile,
         message: 'Booking verified successfully! This pass is valid.',
-      });
+      };
+      setResult(verResult);
+      addToHistory(verResult);
     } catch {
-      setResult({ status: 'invalid', message: 'Could not read QR code data. Invalid format.' });
+      verResult = { status: 'invalid', message: 'Could not read QR code data. Invalid format.' };
+      setResult(verResult);
+      addToHistory(verResult);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [addToHistory]);
 
   const startScanner = useCallback(async () => {
     setResult(null);
@@ -110,8 +224,6 @@ const AdminScanner = () => {
 
     try {
       const { Html5Qrcode } = await import('html5-qrcode');
-      
-      // Small delay for DOM
       await new Promise(r => setTimeout(r, 100));
       
       const scanner = new Html5Qrcode(scannerContainerId);
@@ -126,7 +238,7 @@ const AdminScanner = () => {
           setScanning(false);
           verifyBooking(decodedText);
         },
-        () => {} // ignore errors during scanning
+        () => {}
       );
     } catch (err: any) {
       setScanning(false);
@@ -136,9 +248,7 @@ const AdminScanner = () => {
 
   const stopScanner = useCallback(async () => {
     if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-      } catch {}
+      try { await scannerRef.current.stop(); } catch {}
       scannerRef.current = null;
     }
     setScanning(false);
@@ -157,13 +267,6 @@ const AdminScanner = () => {
     setError(null);
   };
 
-  const statusConfig = {
-    valid: { icon: CheckCircle, color: 'text-success', bg: 'bg-success/10 border-success/30', label: 'Valid' },
-    invalid: { icon: XCircle, color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/30', label: 'Invalid' },
-    expired: { icon: AlertTriangle, color: 'text-warning', bg: 'bg-warning/10 border-warning/30', label: 'Expired' },
-    not_approved: { icon: AlertTriangle, color: 'text-warning', bg: 'bg-warning/10 border-warning/30', label: 'Not Approved' },
-  };
-
   return (
     <AdminLayout title="QR Scanner" subtitle="Scan booking passes to verify court and equipment reservations">
       <div className="max-w-2xl mx-auto space-y-6">
@@ -179,7 +282,6 @@ const AdminScanner = () => {
               <h2 className="font-display text-xl font-semibold text-foreground">Booking Pass Scanner</h2>
             </div>
 
-            {/* Scanner viewport */}
             <div className="relative mx-auto w-full max-w-sm aspect-square bg-muted rounded-xl overflow-hidden mb-4">
               <div id={scannerContainerId} className="w-full h-full" />
               {!scanning && !result && (
@@ -241,7 +343,6 @@ const AdminScanner = () => {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-4"
           >
-            {/* Status Banner */}
             {(() => {
               const config = statusConfig[result.status];
               const Icon = config.icon;
@@ -261,13 +362,10 @@ const AdminScanner = () => {
               );
             })()}
 
-            {/* Booking Details */}
             {result.booking && (
               <div className="bg-gradient-card rounded-xl border border-border p-5 space-y-4">
                 <h4 className="font-display font-semibold text-foreground">Booking Details</h4>
-
                 <div className="grid gap-3">
-                  {/* Resource */}
                   <div className="flex items-start gap-3 bg-secondary/50 rounded-lg p-3">
                     {result.booking.resource_type === 'court' ? (
                       <MapPin className="w-5 h-5 text-primary mt-0.5" />
@@ -290,7 +388,6 @@ const AdminScanner = () => {
                     </div>
                   </div>
 
-                  {/* Date & Time */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-secondary/50 rounded-lg p-3">
                       <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -312,7 +409,6 @@ const AdminScanner = () => {
                     </div>
                   </div>
 
-                  {/* User Info */}
                   <div className="flex items-start gap-3 bg-secondary/50 rounded-lg p-3">
                     <Users className="w-5 h-5 text-primary mt-0.5" />
                     <div>
@@ -328,7 +424,6 @@ const AdminScanner = () => {
                     </div>
                   </div>
 
-                  {/* Booking ID */}
                   <div className="text-center pt-2 border-t border-border">
                     <p className="text-xs text-muted-foreground">Booking ID</p>
                     <p className="font-mono font-bold text-primary tracking-widest">
@@ -340,6 +435,12 @@ const AdminScanner = () => {
             )}
           </motion.div>
         )}
+
+        {/* Scan History */}
+        <ScanHistoryLog 
+          history={scanHistory} 
+          onClear={() => setScanHistory([])} 
+        />
       </div>
     </AdminLayout>
   );
