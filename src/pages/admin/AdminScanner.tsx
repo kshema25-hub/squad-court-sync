@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 type VerificationResult = {
   status: 'valid' | 'invalid' | 'expired' | 'not_approved';
