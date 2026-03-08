@@ -57,7 +57,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Generated class code:", classCode);
 
-    // Create the user account
+    // Check if this class (name + department + year) is already registered
+    const { data: existingClass } = await supabaseAdmin
+      .from("classes")
+      .select("id")
+      .eq("name", class_name)
+      .eq("department", department)
+      .eq("year", year)
+      .maybeSingle();
+
+    if (existingClass) {
+      return new Response(
+        JSON.stringify({ error: `${class_name} in ${department} (Year ${year}) is already registered. Each class can only register once.` }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
