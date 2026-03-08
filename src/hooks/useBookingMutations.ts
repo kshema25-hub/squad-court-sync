@@ -80,17 +80,16 @@ export function useCreateEquipmentBooking() {
 
   return useMutation({
     mutationFn: async (params: CreateEquipmentBookingParams) => {
-      // Check for conflicting bookings for same equipment
-      const { data: conflicts } = await supabase
-        .from('bookings')
-        .select('id')
-        .eq('equipment_id', params.equipmentId)
-        .eq('resource_type', 'equipment')
-        .in('status', ['pending', 'approved'])
-        .lt('start_time', params.endTime.toISOString())
-        .gt('end_time', params.startTime.toISOString());
+      // Check for conflicting bookings using SECURITY DEFINER function (bypasses RLS)
+      const { data: hasConflict, error: conflictError } = await supabase
+        .rpc('check_equipment_booking_conflict', {
+          _equipment_id: params.equipmentId,
+          _start_time: params.startTime.toISOString(),
+          _end_time: params.endTime.toISOString(),
+        });
 
-      if (conflicts && conflicts.length > 0) {
+      if (conflictError) throw conflictError;
+      if (hasConflict) {
         throw new Error('This equipment is already booked for the selected time. Please choose a different slot.');
       }
 
