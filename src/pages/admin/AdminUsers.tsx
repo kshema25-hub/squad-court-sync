@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Search,
   MoreHorizontal,
   UserCheck,
@@ -30,9 +44,11 @@ import {
   Filter,
   Loader2,
   Users,
+  BookOpen,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { Label } from '@/components/ui/label';
 
 interface UserWithRole {
   id: string;
@@ -53,12 +69,15 @@ interface UserWithRole {
 const AdminUsers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
+  const [assignDialogUser, setAssignDialogUser] = useState<UserWithRole | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
+  const [assigning, setAssigning] = useState(false);
+  const queryClient = useQueryClient();
 
   // Fetch real users with their roles and class info
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['admin', 'users'],
     queryFn: async () => {
-      // Fetch profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -66,28 +85,24 @@ const AdminUsers = () => {
 
       if (profilesError) throw profilesError;
 
-      // Fetch roles
       const { data: roles, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id, role');
 
       if (rolesError) throw rolesError;
 
-      // Fetch classes
       const { data: classes, error: classesError } = await supabase
         .from('classes')
         .select('id, name, department');
 
       if (classesError) throw classesError;
 
-      // Fetch booking counts
       const { data: bookings, error: bookingsError } = await supabase
         .from('bookings')
         .select('user_id');
 
       if (bookingsError) throw bookingsError;
 
-      // Build maps
       const roleMap = new Map(roles?.map((r) => [r.user_id, r.role]) || []);
       const classMap = new Map(classes?.map((c) => [c.id, c]) || []);
       const bookingCountMap = new Map<string, number>();
@@ -115,6 +130,71 @@ const AdminUsers = () => {
       });
     },
   });
+
+  // Fetch all classes for assignment
+  const { data: allClasses = [] } = useQuery({
+    queryKey: ['admin', 'classes-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('id, name, department, class_id')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const handleAssignClass = async () => {
+    if (!assignDialogUser || !selectedClassId) return;
+    setAssigning(true);
+
+    try {
+      // Update profile with class_id
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ class_id: selectedClassId })
+        .eq('user_id', assignDialogUser.user_id);
+
+      if (profileError) throw profileError;
+
+      // Check if already a class member
+      const { data: existing } = await supabase
+        .from('class_members')
+        .select('id')
+        .eq('user_id', assignDialogUser.user_id)
+        .eq('class_id', selectedClassId)
+        .maybeSingle();
+
+      if (!existing) {
+        // Remove old class memberships
+        await supabase
+          .from('class_members')
+          .delete()
+          .eq('user_id', assignDialogUser.user_id);
+
+        // Add new class membership
+        const { error: memberError } = await supabase
+          .from('class_members')
+          .insert({
+            user_id: assignDialogUser.user_id,
+            class_id: selectedClassId,
+            is_representative: false,
+          });
+
+        if (memberError) throw memberError;
+      }
+
+      toast.success(`${assignDialogUser.full_name} assigned to class successfully`);
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      setAssignDialogUser(null);
+      setSelectedClassId('');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to assign class');
+    } finally {
+      setAssigning(false);
+    }
+  };
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
@@ -232,7 +312,9 @@ const AdminUsers = () => {
                             <p className="text-xs text-muted-foreground">{user.class_department}</p>
                           </>
                         ) : (
-                          <span className="text-muted-foreground">—</span>
+                          <Badge variant="outline" className="text-muted-foreground border-dashed">
+                            Not assigned
+                          </Badge>
                         )}
                       </div>
                     </TableCell>
@@ -253,6 +335,13 @@ const AdminUsers = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => {
+                            setAssignDialogUser(user);
+                            setSelectedClassId(user.class_id || '');
+                          }}>
+                            <BookOpen className="w-4 h-4 mr-2" />
+                            Assign to Class
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => toast.info(`Student ID: ${user.student_id || 'N/A'}`)}>
                             <UserCheck className="w-4 h-4 mr-2" />
                             View Details
@@ -279,6 +368,70 @@ const AdminUsers = () => {
           )}
         </motion.div>
       )}
+
+      {/* Assign to Class Dialog */}
+      <Dialog open={!!assignDialogUser} onOpenChange={() => setAssignDialogUser(null)}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">
+              Assign to Class
+            </DialogTitle>
+            <DialogDescription>
+              Assign <strong>{assignDialogUser?.full_name}</strong> to a class so they can book courts and equipment.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label className="text-foreground">Select Class</Label>
+              <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Choose a class..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {allClasses.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name} — {cls.department} ({cls.class_id})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {assignDialogUser?.class_name && (
+              <p className="text-sm text-muted-foreground">
+                Currently assigned to: <strong>{assignDialogUser.class_name}</strong> ({assignDialogUser.class_department})
+              </p>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setAssignDialogUser(null)}
+                disabled={assigning}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="hero"
+                className="flex-1"
+                onClick={handleAssignClass}
+                disabled={assigning || !selectedClassId}
+              >
+                {assigning ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Assigning...
+                  </>
+                ) : (
+                  'Assign Class'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };
