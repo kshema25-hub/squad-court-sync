@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import { format } from 'date-fns';
-import { QrCode, Calendar, Clock, MapPin, Users, Package, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Package, CheckCircle } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface BookingPassProps {
   booking: {
