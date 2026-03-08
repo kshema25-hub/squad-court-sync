@@ -23,6 +23,7 @@ import AdminInventory from "./pages/admin/AdminInventory";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminCourts from "./pages/admin/AdminCourts";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminScanner from "./pages/admin/AdminScanner";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -112,6 +113,11 @@ const App = () => (
             <Route path="/admin/settings" element={
               <ProtectedRoute requiredRoles={['admin']}>
                 <AdminSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/scanner" element={
+              <ProtectedRoute requiredRoles={['admin', 'faculty']}>
+                <AdminScanner />
               </ProtectedRoute>
             } />
             
