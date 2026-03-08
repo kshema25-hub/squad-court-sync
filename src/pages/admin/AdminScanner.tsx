@@ -39,7 +39,7 @@ type ScanHistoryEntry = {
 };
 
 const statusConfig = {
-  valid: { icon: CheckCircle, color: 'text-success', bg: 'bg-success/10 border-success/30', label: 'Valid' },
+  valid: { icon: CheckCircle, color: 'text-success', bg: 'bg-success/10 border-success/30', label: 'Verified ✓' },
   invalid: { icon: XCircle, color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/30', label: 'Invalid' },
   expired: { icon: AlertTriangle, color: 'text-warning', bg: 'bg-warning/10 border-warning/30', label: 'Expired' },
   not_approved: { icon: AlertTriangle, color: 'text-warning', bg: 'bg-warning/10 border-warning/30', label: 'Not Approved' },
