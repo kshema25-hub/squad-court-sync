@@ -141,14 +141,25 @@ const AdminScanner = () => {
   const verifyBooking = useCallback(async (data: string) => {
     setLoading(true);
     setError(null);
+    setResult(null);
     let verResult: VerificationResult;
     try {
-      const parsed = JSON.parse(data);
+      let parsed: any;
+      try {
+        parsed = JSON.parse(data);
+      } catch {
+        verResult = { status: 'invalid', message: 'Could not read QR code data. Invalid format.' };
+        setResult(verResult);
+        addToHistory(verResult);
+        toast.error('Invalid QR Code', { description: 'Could not read QR code data.' });
+        return;
+      }
       
       if (parsed.type !== 'squadsync_booking' || !parsed.id) {
         verResult = { status: 'invalid', message: 'This QR code is not a valid SquadSync booking pass.' };
         setResult(verResult);
         addToHistory(verResult);
+        toast.error('Invalid Pass', { description: 'Not a valid SquadSync booking pass.' });
         return;
       }
 
@@ -164,9 +175,11 @@ const AdminScanner = () => {
         .single();
 
       if (fetchError || !booking) {
+        console.error('Booking fetch error:', fetchError);
         verResult = { status: 'invalid', message: 'Booking not found in the system.' };
         setResult(verResult);
         addToHistory(verResult);
+        toast.error('Booking Not Found', { description: 'This booking does not exist in the system.' });
         return;
       }
 
@@ -174,7 +187,7 @@ const AdminScanner = () => {
         .from('profiles')
         .select('*')
         .eq('user_id', booking.user_id)
-        .single();
+        .maybeSingle();
 
       const bookingWithProfile = { ...booking, profile };
 
@@ -186,6 +199,7 @@ const AdminScanner = () => {
         };
         setResult(verResult);
         addToHistory(verResult);
+        toast.warning('Not Approved', { description: `Booking status: ${booking.status}` });
         return;
       }
 
@@ -199,6 +213,7 @@ const AdminScanner = () => {
         };
         setResult(verResult);
         addToHistory(verResult);
+        toast.warning('Expired', { description: 'This booking has expired.' });
         return;
       }
 
@@ -209,10 +224,13 @@ const AdminScanner = () => {
       };
       setResult(verResult);
       addToHistory(verResult);
-    } catch {
-      verResult = { status: 'invalid', message: 'Could not read QR code data. Invalid format.' };
+      toast.success('✅ Pass Verified!', { description: `${booking.court?.name || booking.equipment?.name || 'Booking'} is valid.` });
+    } catch (err) {
+      console.error('Verification error:', err);
+      verResult = { status: 'invalid', message: 'An unexpected error occurred during verification.' };
       setResult(verResult);
       addToHistory(verResult);
+      toast.error('Verification Failed', { description: 'An unexpected error occurred.' });
     } finally {
       setLoading(false);
     }
