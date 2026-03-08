@@ -497,6 +497,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_court_booking_conflict: {
+        Args: { _court_id: string; _end_time: string; _start_time: string }
+        Returns: boolean
+      }
+      check_equipment_booking_conflict: {
+        Args: { _end_time: string; _equipment_id: string; _start_time: string }
+        Returns: boolean
+      }
       faculty_can_access_student: {
         Args: { _faculty_user_id: string; _student_user_id: string }
         Returns: boolean
