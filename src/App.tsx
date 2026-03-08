@@ -115,6 +115,11 @@ const App = () => (
                 <AdminSettings />
               </ProtectedRoute>
             } />
+            <Route path="/admin/scanner" element={
+              <ProtectedRoute requiredRoles={['admin', 'faculty']}>
+                <AdminScanner />
+              </ProtectedRoute>
+            } />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
