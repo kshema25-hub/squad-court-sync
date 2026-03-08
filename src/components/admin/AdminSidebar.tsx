@@ -14,7 +14,8 @@ import {
   Shield,
   CheckSquare,
   Home,
-  Loader2
+  Loader2,
+  ScanLine
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
