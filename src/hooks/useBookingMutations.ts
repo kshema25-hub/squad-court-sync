@@ -28,6 +28,20 @@ export function useCreateCourtBooking() {
 
   return useMutation({
     mutationFn: async (params: CreateCourtBookingParams) => {
+      // Check for conflicting bookings (server-side double-booking prevention)
+      const { data: conflicts } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('court_id', params.courtId)
+        .eq('resource_type', 'court')
+        .in('status', ['pending', 'approved'])
+        .lt('start_time', params.endTime.toISOString())
+        .gt('end_time', params.startTime.toISOString());
+
+      if (conflicts && conflicts.length > 0) {
+        throw new Error('This slot is already booked. Please select a different time slot.');
+      }
+
       const { data, error } = await supabase
         .from('bookings')
         .insert({
@@ -67,6 +81,20 @@ export function useCreateEquipmentBooking() {
 
   return useMutation({
     mutationFn: async (params: CreateEquipmentBookingParams) => {
+      // Check for conflicting bookings for same equipment
+      const { data: conflicts } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('equipment_id', params.equipmentId)
+        .eq('resource_type', 'equipment')
+        .in('status', ['pending', 'approved'])
+        .lt('start_time', params.endTime.toISOString())
+        .gt('end_time', params.startTime.toISOString());
+
+      if (conflicts && conflicts.length > 0) {
+        throw new Error('This equipment is already booked for the selected time. Please choose a different slot.');
+      }
+
       const { data, error } = await supabase
         .from('bookings')
         .insert({

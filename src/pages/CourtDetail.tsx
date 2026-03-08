@@ -253,8 +253,8 @@ const CourtDetail = () => {
                       <Clock className="w-3 h-3 mx-auto mb-1" />
                       {slot.time}
                       {!slot.available && (
-                        <span className="block text-[10px] opacity-70">
-                          {slot.bookingType === 'class' ? 'Class' : 'Booked'}
+                        <span className="block text-[10px] text-destructive font-semibold">
+                          Already Booked
                         </span>
                       )}
                     </button>
