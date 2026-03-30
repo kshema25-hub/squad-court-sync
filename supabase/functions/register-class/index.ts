@@ -60,25 +60,24 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Generated class code:", classCode);
 
-    // Check if this class (name + department + year) is already registered
+    // Check if this class name is already registered (globally unique)
     const { data: existingClass } = await supabaseAdmin
       .from("classes")
       .select("id")
-      .eq("name", class_name)
-      .eq("department", department)
-      .eq("year", year)
+      .ilike("name", normalized_class_name)
       .maybeSingle();
 
     if (existingClass) {
       return new Response(
-        JSON.stringify({ error: `${class_name} in ${department} (Year ${year}) is already registered. Each class can only register once.` }),
+        JSON.stringify({ error: "This class is already registered. Only one representative is allowed per class." }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
+
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Auto-confirm since we're sending class code
+      email_confirm: true,
       user_metadata: {
         full_name,
         is_representative: true,
@@ -87,7 +86,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (authError) {
       console.error("Error creating user:", authError);
-      // Return user-friendly error for duplicate email
       if (authError.message.includes("already been registered") || authError.code === "email_exists") {
         return new Response(
           JSON.stringify({ error: "This email is already registered. Please use a different email or try logging in." }),
@@ -103,11 +101,11 @@ const handler = async (req: Request): Promise<Response> => {
     const userId = authData.user.id;
     console.log("Created user:", userId);
 
-    // Create the class with the generated code
+    // Create the class with the normalized uppercase name
     const { data: classData, error: classError } = await supabaseAdmin
       .from("classes")
       .insert({
-        name: class_name,
+        name: normalized_class_name,
         class_id: class_id_code,
         department,
         year,
@@ -121,7 +119,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (classError) {
       console.error("Error creating class:", classError);
-      // Rollback user creation
       await supabaseAdmin.auth.admin.deleteUser(userId);
       throw new Error("Failed to create class: " + classError.message);
     }
@@ -141,7 +138,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error updating profile:", profileError);
     }
 
-    // Assign student role (representatives are still students)
+    // Assign student role
     const { error: roleError } = await supabaseAdmin
       .from("user_roles")
       .update({ role: 'student' })
@@ -162,79 +159,38 @@ const handler = async (req: Request): Promise<Response> => {
       <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5;">
         <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-            <!-- Header -->
             <div style="padding: 32px 32px 24px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
-                🎉 Welcome to SquadSync!
-              </h1>
-              <p style="margin: 8px 0 0; color: #a1a1aa; font-size: 14px;">
-                Class Registration Successful
-              </p>
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">🎉 Welcome to SquadSync!</h1>
+              <p style="margin: 8px 0 0; color: #a1a1aa; font-size: 14px;">Class Registration Successful</p>
             </div>
-            
-            <!-- Class Code -->
             <div style="padding: 0 32px 24px; text-align: center;">
               <p style="margin: 0 0 12px; color: #a1a1aa; font-size: 14px;">Your Class Code</p>
               <div style="display: inline-block; padding: 16px 32px; background-color: #22c55e20; border: 2px dashed #22c55e; border-radius: 12px;">
-                <span style="font-size: 32px; font-weight: 700; color: #22c55e; letter-spacing: 4px;">
-                  ${classCode}
-                </span>
+                <span style="font-size: 32px; font-weight: 700; color: #22c55e; letter-spacing: 4px;">${classCode}</span>
               </div>
             </div>
-            
-            <!-- Content -->
             <div style="background-color: #ffffff; padding: 32px; border-radius: 12px; margin: 0 16px 16px;">
+              <p style="margin: 0 0 24px; color: #374151; font-size: 16px; line-height: 1.6;">Hi ${full_name},</p>
               <p style="margin: 0 0 24px; color: #374151; font-size: 16px; line-height: 1.6;">
-                Hi ${full_name},
+                Congratulations! You've been registered as the Class Representative for <strong>${normalized_class_name}</strong>.
               </p>
-              
-              <p style="margin: 0 0 24px; color: #374151; font-size: 16px; line-height: 1.6;">
-                Congratulations! You've been registered as the Class Representative for <strong>${class_name}</strong>.
-              </p>
-              
-              <!-- Info Card -->
               <div style="background-color: #f9fafb; border-radius: 12px; padding: 20px; margin: 24px 0;">
-                <h3 style="margin: 0 0 16px; color: #111827; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
-                  📋 Class Details
-                </h3>
-                
+                <h3 style="margin: 0 0 16px; color: #111827; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">📋 Class Details</h3>
                 <table style="width: 100%; border-collapse: collapse;">
-                  <tr>
-                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 40%;">Class:</td>
-                    <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 500;">${class_name}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Class ID:</td>
-                    <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 500;">${class_id_code}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Department:</td>
-                    <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 500;">${department}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Year:</td>
-                    <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 500;">${year}</td>
-                  </tr>
+                  <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 40%;">Class:</td><td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 500;">${normalized_class_name}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Department:</td><td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 500;">${department}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Year:</td><td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 500;">${year}</td></tr>
                 </table>
               </div>
-              
-              <!-- Important Notice -->
               <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 24px 0; border-radius: 0 8px 8px 0;">
                 <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
                   <strong>⚠️ Important:</strong> Keep your class code safe! You'll need it every time you log in along with your email and password.
                 </p>
               </div>
-              
-              <p style="margin: 24px 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                You can now book courts and equipment on behalf of your entire class.
-              </p>
+              <p style="margin: 24px 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">You can now book courts and equipment on behalf of your entire class.</p>
             </div>
-            
-            <!-- Footer -->
             <div style="padding: 24px 32px; text-align: center;">
-              <p style="margin: 0; color: #71717a; font-size: 12px;">
-                This is an automated email from SquadSync.
-              </p>
+              <p style="margin: 0; color: #71717a; font-size: 12px;">This is an automated email from SquadSync.</p>
             </div>
           </div>
         </div>
