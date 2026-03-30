@@ -145,7 +145,7 @@ const Auth = () => {
         });
       } else {
         // Register new class
-        const { data, error } = await supabase.functions.invoke('register-class', {
+        const response = await supabase.functions.invoke('register-class', {
           body: {
             email,
             password,
@@ -157,8 +157,16 @@ const Auth = () => {
           },
         });
 
+        const data = response.data;
+        const error = response.error;
+
         if (error || data?.error) {
-          toast.error(data?.error || error?.message || 'Registration failed');
+          // Extract error message from response data or error context
+          const errorMsg = data?.error || 
+            (error?.context ? await error.context.json().then((r: any) => r.error).catch(() => null) : null) ||
+            error?.message || 
+            'Registration failed';
+          toast.error(errorMsg);
           return;
         }
         
