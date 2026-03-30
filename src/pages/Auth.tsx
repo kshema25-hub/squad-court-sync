@@ -278,7 +278,7 @@ const Auth = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="className">Class Name</Label>
-                  <Select value={className} onValueChange={setClassName} disabled={isSubmitting}>
+                  <Select value={className} onValueChange={(v) => setClassName(v.toUpperCase())} disabled={isSubmitting}>
                     <SelectTrigger className={`bg-secondary border-border ${errors.className ? 'border-destructive' : ''}`}>
                       <SelectValue placeholder="Select class" />
                     </SelectTrigger>
