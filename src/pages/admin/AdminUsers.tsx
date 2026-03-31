@@ -211,6 +211,34 @@ const AdminUsers = () => {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!deleteDialogUser || !session?.access_token) return;
+    setDeleting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: deleteDialogUser.user_id },
+      });
+
+      if (error) {
+        const errorMsg = error.context
+          ? await error.context.json().then((r: any) => r.error).catch(() => null)
+          : null;
+        throw new Error(errorMsg || error.message || 'Failed to delete user');
+      }
+
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`${deleteDialogUser.full_name} has been deleted`);
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      setDeleteDialogUser(null);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete user');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
