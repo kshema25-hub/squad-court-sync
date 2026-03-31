@@ -393,6 +393,15 @@ const AdminUsers = () => {
                             <Mail className="w-4 h-4 mr-2" />
                             Contact
                           </DropdownMenuItem>
+                          {user.role !== 'admin' && (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteDialogUser(user)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete User
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
