@@ -28,6 +28,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -45,10 +55,12 @@ import {
   Loader2,
   Users,
   BookOpen,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UserWithRole {
   id: string;
@@ -72,7 +84,10 @@ const AdminUsers = () => {
   const [assignDialogUser, setAssignDialogUser] = useState<UserWithRole | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [assigning, setAssigning] = useState(false);
+  const [deleteDialogUser, setDeleteDialogUser] = useState<UserWithRole | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   // Fetch real users with their roles and class info
   const { data: users = [], isLoading } = useQuery({
@@ -193,6 +208,34 @@ const AdminUsers = () => {
       toast.error(error.message || 'Failed to assign class');
     } finally {
       setAssigning(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteDialogUser || !session?.access_token) return;
+    setDeleting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: deleteDialogUser.user_id },
+      });
+
+      if (error) {
+        const errorMsg = error.context
+          ? await error.context.json().then((r: any) => r.error).catch(() => null)
+          : null;
+        throw new Error(errorMsg || error.message || 'Failed to delete user');
+      }
+
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`${deleteDialogUser.full_name} has been deleted`);
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      setDeleteDialogUser(null);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete user');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -350,6 +393,15 @@ const AdminUsers = () => {
                             <Mail className="w-4 h-4 mr-2" />
                             Contact
                           </DropdownMenuItem>
+                          {user.role !== 'admin' && (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteDialogUser(user)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete User
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -432,6 +484,35 @@ const AdminUsers = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete User Confirmation */}
+      <AlertDialog open={!!deleteDialogUser} onOpenChange={() => setDeleteDialogUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User Permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{deleteDialogUser?.full_name}</strong> ({deleteDialogUser?.email}) and all their bookings, notifications, and class memberships. They will need to register again to use the system. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete User'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };
