@@ -60,18 +60,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Generated class code:", classCode);
 
-    // Check if this class name is already registered (globally unique)
+    // Check if this class name is already registered (globally unique, only active classes)
     const { data: existingClass } = await supabaseAdmin
       .from("classes")
-      .select("id")
+      .select("id, is_active")
       .ilike("name", normalized_class_name)
       .maybeSingle();
 
-    if (existingClass) {
+    if (existingClass && existingClass.is_active) {
       return new Response(
         JSON.stringify({ error: "This class is already registered. Only one representative is allowed per class." }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
+    }
+
+    // If class exists but is inactive (deleted user), remove the old record so it can be re-registered
+    if (existingClass && !existingClass.is_active) {
+      await supabaseAdmin.from("classes").delete().eq("id", existingClass.id);
     }
 
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
