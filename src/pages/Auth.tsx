@@ -24,13 +24,13 @@ const DEPARTMENTS = [
 const CLASS_NAMES = [
   'BCA A', 'BCA B',
   'BBA A', 'BBA B',
-  'BSc A', 'BSc B',
-  'BVoc A', 'BVoc B',
-  'BCom A', 'BCom B',
+  'BSC A', 'BSC B',
+  'BVOC A', 'BVOC B',
+  'BCOM A', 'BCOM B',
   'BA A', 'BA B',
-  'BA in Economics A', 'BA in Economics B',
-  'BA in Political Science A', 'BA in Political Science B',
-  'BA in History A', 'BA in History B',
+  'BA IN ECONOMICS A', 'BA IN ECONOMICS B',
+  'BA IN POLITICAL SCIENCE A', 'BA IN POLITICAL SCIENCE B',
+  'BA IN HISTORY A', 'BA IN HISTORY B',
 ];
 
 const signUpSchema = z.object({
