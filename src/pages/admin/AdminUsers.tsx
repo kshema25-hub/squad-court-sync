@@ -84,7 +84,10 @@ const AdminUsers = () => {
   const [assignDialogUser, setAssignDialogUser] = useState<UserWithRole | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [assigning, setAssigning] = useState(false);
+  const [deleteDialogUser, setDeleteDialogUser] = useState<UserWithRole | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   // Fetch real users with their roles and class info
   const { data: users = [], isLoading } = useQuery({
