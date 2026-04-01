@@ -78,15 +78,12 @@ export const EquipmentCard = ({ equipment, index, onRequest }: EquipmentCardProp
             </Badge>
           </div>
 
-          {/* Availability bar */}
-          <div className="mb-3">
-            <div className="flex items-center justify-between text-sm mb-1.5">
-              <span className="text-muted-foreground">Availability</span>
-              <span className="font-medium text-foreground">
-                {equipment.availableQuantity}/{equipment.totalQuantity}
-              </span>
-            </div>
-            <Progress value={availabilityPercent} className="h-2" />
+          {/* Availability */}
+          <div className="mb-3 flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Available</span>
+            <span className="font-display text-lg font-bold text-foreground">
+              {equipment.availableQuantity}
+            </span>
           </div>
 
           {/* Actions */}
