@@ -111,10 +111,27 @@ export function useCreateEquipmentBooking() {
         .single();
 
       if (error) throw error;
+
+      // Decrease available_quantity
+      const { data: equip } = await supabase
+        .from('equipment')
+        .select('available_quantity')
+        .eq('id', params.equipmentId)
+        .single();
+
+      if (equip) {
+        await supabase
+          .from('equipment')
+          .update({ available_quantity: Math.max(0, equip.available_quantity - params.quantity) })
+          .eq('id', params.equipmentId);
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'equipment'] });
       toast.success('Equipment request submitted!', {
         description: 'Your request is pending approval.',
       });
@@ -133,19 +150,43 @@ export function useCancelBooking() {
 
   return useMutation({
     mutationFn: async (bookingId: string) => {
+      // Get booking details first to restore equipment quantity if needed
+      const { data: booking } = await supabase
+        .from('bookings')
+        .select('resource_type, equipment_id, quantity')
+        .eq('id', bookingId)
+        .single();
+
       const { error } = await supabase
         .from('bookings')
         .update({ status: 'cancelled' })
         .eq('id', bookingId);
 
       if (error) throw error;
+
+      // Restore equipment availability
+      if (booking?.resource_type === 'equipment' && booking.equipment_id) {
+        const { data: equip } = await supabase
+          .from('equipment')
+          .select('available_quantity')
+          .eq('id', booking.equipment_id)
+          .single();
+
+        if (equip) {
+          await supabase
+            .from('equipment')
+            .update({ available_quantity: equip.available_quantity + (booking.quantity || 1) })
+            .eq('id', booking.equipment_id);
+        }
+      }
     },
     onSuccess: () => {
-      // Invalidate all booking-related queries
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['court-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['court-month-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'equipment'] });
       toast.success('Booking cancelled');
     },
     onError: (error: Error) => {
