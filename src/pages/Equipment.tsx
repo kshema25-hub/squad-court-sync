@@ -44,14 +44,15 @@ function useEquipmentBookings(equipmentId: string | undefined, date: Date | unde
       const dayStart = startOfDay(date).toISOString();
       const dayEnd = endOfDay(date).toISOString();
 
+      // Find bookings that overlap with this day (not just start on this day)
       const { data, error } = await supabase
         .from('bookings')
         .select('start_time, end_time')
         .eq('equipment_id', equipmentId)
         .eq('resource_type', 'equipment')
         .in('status', ['pending', 'approved'])
-        .gte('start_time', dayStart)
-        .lte('start_time', dayEnd);
+        .lt('start_time', dayEnd)
+        .gt('end_time', dayStart);
 
       if (error) throw error;
       return data;
