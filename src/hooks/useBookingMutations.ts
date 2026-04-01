@@ -111,6 +111,21 @@ export function useCreateEquipmentBooking() {
         .single();
 
       if (error) throw error;
+
+      // Decrease available_quantity
+      const { data: equip } = await supabase
+        .from('equipment')
+        .select('available_quantity')
+        .eq('id', params.equipmentId)
+        .single();
+
+      if (equip) {
+        await supabase
+          .from('equipment')
+          .update({ available_quantity: Math.max(0, equip.available_quantity - params.quantity) })
+          .eq('id', params.equipmentId);
+      }
+
       return data;
     },
     onSuccess: () => {
