@@ -130,6 +130,8 @@ export function useCreateEquipmentBooking() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'equipment'] });
       toast.success('Equipment request submitted!', {
         description: 'Your request is pending approval.',
       });
