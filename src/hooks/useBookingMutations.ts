@@ -181,11 +181,12 @@ export function useCancelBooking() {
       }
     },
     onSuccess: () => {
-      // Invalidate all booking-related queries
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['court-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['court-month-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'equipment'] });
       toast.success('Booking cancelled');
     },
     onError: (error: Error) => {
