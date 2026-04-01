@@ -150,12 +150,35 @@ export function useCancelBooking() {
 
   return useMutation({
     mutationFn: async (bookingId: string) => {
+      // Get booking details first to restore equipment quantity if needed
+      const { data: booking } = await supabase
+        .from('bookings')
+        .select('resource_type, equipment_id, quantity')
+        .eq('id', bookingId)
+        .single();
+
       const { error } = await supabase
         .from('bookings')
         .update({ status: 'cancelled' })
         .eq('id', bookingId);
 
       if (error) throw error;
+
+      // Restore equipment availability
+      if (booking?.resource_type === 'equipment' && booking.equipment_id) {
+        const { data: equip } = await supabase
+          .from('equipment')
+          .select('available_quantity')
+          .eq('id', booking.equipment_id)
+          .single();
+
+        if (equip) {
+          await supabase
+            .from('equipment')
+            .update({ available_quantity: equip.available_quantity + (booking.quantity || 1) })
+            .eq('id', booking.equipment_id);
+        }
+      }
     },
     onSuccess: () => {
       // Invalidate all booking-related queries
