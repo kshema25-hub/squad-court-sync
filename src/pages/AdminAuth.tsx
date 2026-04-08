@@ -152,7 +152,7 @@ const ADMIN_PASSWORD = 'admin@123';
                  <Input
                    id="email"
                    type="email"
-                   placeholder="admin@gmail.com"
+                   placeholder="Enter admin email"
                    value={email}
                    onChange={(e) => setEmail(e.target.value)}
                    className="pl-10 bg-secondary border-border"
