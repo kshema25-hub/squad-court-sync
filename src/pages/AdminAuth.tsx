@@ -9,9 +9,8 @@ import { useEffect } from 'react';
  import { toast } from 'sonner';
  import { supabase } from '@/integrations/supabase/client';
  
- // Demo admin credentials - in production, these would be in secure storage
- const DEMO_ADMIN_EMAIL = 'admin@squadsync.demo';
- const DEMO_ADMIN_PASSWORD = 'admin123';
+const ADMIN_EMAIL = 'admin@gmail.com';
+const ADMIN_PASSWORD = 'admin@123';
  
  const AdminAuth = () => {
    const [email, setEmail] = useState('');
