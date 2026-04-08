@@ -9,9 +9,8 @@ import { useEffect } from 'react';
  import { toast } from 'sonner';
  import { supabase } from '@/integrations/supabase/client';
  
- // Demo admin credentials - in production, these would be in secure storage
- const DEMO_ADMIN_EMAIL = 'admin@squadsync.demo';
- const DEMO_ADMIN_PASSWORD = 'admin123';
+const ADMIN_EMAIL = 'admin@gmail.com';
+const ADMIN_PASSWORD = 'admin@123';
  
  const AdminAuth = () => {
    const [email, setEmail] = useState('');
@@ -37,24 +36,22 @@ import { useEffect } from 'react';
  
      try {
        // Check demo credentials
-       if (email === DEMO_ADMIN_EMAIL && password === DEMO_ADMIN_PASSWORD) {
-         // Sign in with the demo admin account
-         const { error } = await supabase.auth.signInWithPassword({
-           email: DEMO_ADMIN_EMAIL,
-           password: DEMO_ADMIN_PASSWORD,
-         });
- 
-         if (error) {
-           // If admin doesn't exist, show setup message
-           if (error.message.includes('Invalid login credentials')) {
-             toast.error('Admin account not set up', {
-               description: 'Please run the test setup first at /test-setup',
-             });
-           } else {
-             toast.error(error.message);
-           }
-           return;
-         }
+        if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+          const { error } = await supabase.auth.signInWithPassword({
+            email: ADMIN_EMAIL,
+            password: ADMIN_PASSWORD,
+          });
+
+          if (error) {
+            if (error.message.includes('Invalid login credentials')) {
+              toast.error('Admin account not set up', {
+                description: 'Please contact system administrator.',
+              });
+            } else {
+              toast.error(error.message);
+            }
+            return;
+          }
  
          toast.success('Welcome, Administrator!', {
            description: 'You have successfully logged in.',
@@ -145,14 +142,6 @@ import { useEffect } from 'react';
              </p>
            </div>
  
-           {/* Demo credentials hint */}
-           <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 mb-6">
-             <p className="text-sm text-warning font-medium mb-2">Demo Credentials:</p>
-             <div className="text-xs text-muted-foreground space-y-1 font-mono">
-               <p>Email: admin@squadsync.demo</p>
-               <p>Password: admin123</p>
-             </div>
-           </div>
  
            {/* Form */}
            <form onSubmit={handleSubmit} className="space-y-4">
@@ -163,7 +152,7 @@ import { useEffect } from 'react';
                  <Input
                    id="email"
                    type="email"
-                   placeholder="admin@squadsync.demo"
+                   placeholder="admin@gmail.com"
                    value={email}
                    onChange={(e) => setEmail(e.target.value)}
                    className="pl-10 bg-secondary border-border"
