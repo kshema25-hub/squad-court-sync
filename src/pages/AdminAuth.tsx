@@ -142,14 +142,6 @@ const ADMIN_PASSWORD = 'admin@123';
              </p>
            </div>
  
-           {/* Demo credentials hint */}
-           <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 mb-6">
-             <p className="text-sm text-warning font-medium mb-2">Demo Credentials:</p>
-             <div className="text-xs text-muted-foreground space-y-1 font-mono">
-               <p>Email: admin@squadsync.demo</p>
-               <p>Password: admin123</p>
-             </div>
-           </div>
  
            {/* Form */}
            <form onSubmit={handleSubmit} className="space-y-4">
