@@ -36,24 +36,22 @@ const ADMIN_PASSWORD = 'admin@123';
  
      try {
        // Check demo credentials
-       if (email === DEMO_ADMIN_EMAIL && password === DEMO_ADMIN_PASSWORD) {
-         // Sign in with the demo admin account
-         const { error } = await supabase.auth.signInWithPassword({
-           email: DEMO_ADMIN_EMAIL,
-           password: DEMO_ADMIN_PASSWORD,
-         });
- 
-         if (error) {
-           // If admin doesn't exist, show setup message
-           if (error.message.includes('Invalid login credentials')) {
-             toast.error('Admin account not set up', {
-               description: 'Please run the test setup first at /test-setup',
-             });
-           } else {
-             toast.error(error.message);
-           }
-           return;
-         }
+        if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+          const { error } = await supabase.auth.signInWithPassword({
+            email: ADMIN_EMAIL,
+            password: ADMIN_PASSWORD,
+          });
+
+          if (error) {
+            if (error.message.includes('Invalid login credentials')) {
+              toast.error('Admin account not set up', {
+                description: 'Please contact system administrator.',
+              });
+            } else {
+              toast.error(error.message);
+            }
+            return;
+          }
  
          toast.success('Welcome, Administrator!', {
            description: 'You have successfully logged in.',
