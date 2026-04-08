@@ -132,16 +132,45 @@ export function useBulkApproveBookings() {
 
   return useMutation({
     mutationFn: async (bookingIds: string[]) => {
+      // Get equipment bookings to update stock
+      const { data: equipBookings } = await supabase
+        .from('bookings')
+        .select('id, resource_type, equipment_id, quantity')
+        .in('id', bookingIds)
+        .eq('resource_type', 'equipment');
+
       const { error } = await supabase
         .from('bookings')
         .update({ status: 'approved' })
         .in('id', bookingIds);
 
       if (error) throw error;
+
+      // Decrease equipment stock for each equipment booking
+      if (equipBookings) {
+        for (const booking of equipBookings) {
+          if (booking.equipment_id) {
+            const { data: equip } = await supabase
+              .from('equipment')
+              .select('available_quantity')
+              .eq('id', booking.equipment_id)
+              .single();
+
+            if (equip) {
+              await supabase
+                .from('equipment')
+                .update({ available_quantity: Math.max(0, equip.available_quantity - (booking.quantity || 1)) })
+                .eq('id', booking.equipment_id);
+            }
+          }
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'bookings'] });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'equipment'] });
       toast.success('All pending bookings approved!', {
         description: 'Booking passes are now available for students to download.',
       });
