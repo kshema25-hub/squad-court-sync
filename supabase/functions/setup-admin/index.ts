@@ -7,8 +7,8 @@
      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
  };
  
- const DEMO_ADMIN_EMAIL = "admin@squadsync.demo";
- const DEMO_ADMIN_PASSWORD = "admin123";
+const ADMIN_EMAIL = "admin@gmail.com";
+const ADMIN_PASSWORD = "admin@123";
  
  const handler = async (req: Request): Promise<Response> => {
    if (req.method === "OPTIONS") {
