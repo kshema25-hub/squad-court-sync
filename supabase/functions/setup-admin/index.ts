@@ -34,12 +34,17 @@
          .eq('user_id', existingAdmin.id)
          .maybeSingle();
  
-       if (roleData?.role === 'admin') {
-         return new Response(
-           JSON.stringify({ success: true, message: "Admin already exists", user_id: existingAdmin.id }),
-           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-         );
-       }
+      if (roleData?.role === 'admin') {
+          // Reset password to ensure demo credentials work
+          await supabaseAdmin.auth.admin.updateUserById(existingAdmin.id, {
+            password: DEMO_ADMIN_PASSWORD,
+            email_confirm: true,
+          });
+          return new Response(
+            JSON.stringify({ success: true, message: "Admin already exists, password reset", user_id: existingAdmin.id }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
  
        // Update role to admin
        await supabaseAdmin
