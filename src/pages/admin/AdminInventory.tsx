@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
+
 import {
   Dialog,
   DialogContent,
@@ -153,6 +153,7 @@ const AdminInventory = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
       toast.success(`Restocked ${restockAmount} items!`);
       setRestockItem(null);
     },
@@ -295,11 +296,10 @@ const AdminInventory = () => {
                 </div>
 
                 <div className="mb-4">
-                  <div className="flex justify-between text-sm mb-1.5">
-                    <span className="text-muted-foreground">Availability</span>
-                    <span className="font-medium text-foreground">{item.available_quantity}/{item.total_quantity}</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Available</span>
+                    <span className="font-display text-lg font-bold text-foreground">{item.available_quantity}</span>
                   </div>
-                  <Progress value={availPercent} className="h-2" />
                 </div>
 
                 <div className="flex gap-2">
