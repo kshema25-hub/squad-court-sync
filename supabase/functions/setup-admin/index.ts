@@ -43,10 +43,14 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
+      // Delete any existing roles first, then insert admin role
       await supabaseAdmin
         .from('user_roles')
-        .upsert({ user_id: existingAdmin.id, role: 'admin' }, { onConflict: 'user_id' });
-
+        .delete()
+        .eq('user_id', existingAdmin.id);
+      await supabaseAdmin
+        .from('user_roles')
+        .insert({ user_id: existingAdmin.id, role: 'admin' });
       return new Response(
         JSON.stringify({ success: true, message: "Admin role updated", user_id: existingAdmin.id }),
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -77,7 +81,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     await supabaseAdmin
       .from("user_roles")
-      .upsert({ user_id: userId, role: 'admin' }, { onConflict: 'user_id' });
+      .delete()
+      .eq('user_id', userId);
+    await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: userId, role: 'admin' });
 
     return new Response(
       JSON.stringify({ success: true, message: "Admin created successfully", user_id: userId, email: ADMIN_EMAIL }),
