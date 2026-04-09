@@ -295,11 +295,10 @@ const AdminInventory = () => {
                 </div>
 
                 <div className="mb-4">
-                  <div className="flex justify-between text-sm mb-1.5">
-                    <span className="text-muted-foreground">Availability</span>
-                    <span className="font-medium text-foreground">{item.available_quantity}/{item.total_quantity}</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Available</span>
+                    <span className="font-display text-lg font-bold text-foreground">{item.available_quantity}</span>
                   </div>
-                  <Progress value={availPercent} className="h-2" />
                 </div>
 
                 <div className="flex gap-2">
