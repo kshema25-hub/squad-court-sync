@@ -153,6 +153,7 @@ const AdminInventory = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
       toast.success(`Restocked ${restockAmount} items!`);
       setRestockItem(null);
     },
