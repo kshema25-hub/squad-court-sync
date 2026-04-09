@@ -240,6 +240,8 @@ const AdminUsers = () => {
   };
 
   const filteredUsers = users.filter((user) => {
+    // Hide admin users from the list
+    if (user.role === 'admin') return false;
     const matchesSearch =
       user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
